@@ -8,11 +8,15 @@ readonly class TestRequest
         public string $url,
         public string $name,
         public float $price,
-        public int $quantity,
-        public \DateTimeInterface $date,
-        public bool $flag,
     ) {}
+
+
+    public int $quantity;
+    public \DateTimeInterface $date;
+    public bool $flag;
 }
+
+
 
 it('maps requests', function () {
 

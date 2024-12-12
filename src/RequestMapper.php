@@ -13,15 +13,10 @@ readonly class RequestMapper
 {
     public function __construct(private Container $container) {}
 
-    private function getParameterValueFromRequest(
-        ReflectionParameter $parameter,
-        Request $request
-    ): mixed {
-        $key = $parameter->getName();
-        $type = Type::fromReflectionType($parameter->getType());
-        $default = $parameter->isOptional() ? $parameter->getDefaultValue() : null;
+    private function getValueForProperty(Request $request, Property $property) {
+        $key = $property->name;
 
-        return !$request->has($key) ? $default : match ($type) {
+        return !$request->has($key) ? $property->default : match ($property->type) {
             Type::String => $request->string($key)->toString(),
             Type::Bool => $request->boolean($key),
             Type::Int => $request->integer($key),
@@ -54,9 +49,23 @@ readonly class RequestMapper
         $constructorValues = [];
 
         foreach ($constructorParameters as $constructorParameter) {
-            $constructorValues[] = $this->getParameterValueFromRequest($constructorParameter, $request);
+            $property = Property::fromReflectionParameter($constructorParameter);
+
+            $constructorValues[] = $this->getValueForProperty($request, $property);
         }
 
-        return new ($class->getName())(...$constructorValues);
+        $instance = new ($class->getName())(...$constructorValues);
+
+        $classProperties = $class->getProperties(\ReflectionProperty::IS_PUBLIC);
+
+        foreach ($classProperties as $classProperty) {
+            if ($classProperty->isStatic() || $classProperty->isPromoted()) { continue; }
+
+            $property = Property::fromReflectionProperty($classProperty);
+
+            $classProperty->setValue($instance, $this->getValueForProperty($request, $property));
+        }
+
+        return $instance;
     }
 }
