@@ -5,25 +5,41 @@ namespace BYanelli\Roma;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\Request;
+use Illuminate\Support\Fluent;
+use Illuminate\Support\Str;
 use ReflectionClass;
-use ReflectionParameter;
 use RuntimeException;
 
 readonly class RequestMapper
 {
     public function __construct(private Container $container) {}
 
-    private function getValueForProperty(Request $request, Property $property) {
-        $key = $property->name;
+    private function getValueFromData(Fluent $data, Property $property, bool $isHeader): mixed
+    {
+        $key = $isHeader
+            ? Str::of($property->name)->upper()->replace('-', '_')->toString()
+            : $property->name;
 
-        return !$request->has($key) ? $property->default : match ($property->type) {
-            Type::String => $request->string($key)->toString(),
-            Type::Bool => $request->boolean($key),
-            Type::Int => $request->integer($key),
-            Type::Float => $request->float($key),
-            Type::Date => $request->date($key),
-            Type::Mixed => $request->get($key),
+        return !$data->has($key) ? $property->default : match ($property->type) {
+            Type::String => $data->string($key)->toString(),
+            Type::Bool => $data->boolean($key),
+            Type::Int => $data->integer($key),
+            Type::Float => $data->float($key),
+            Type::Date => $data->date($key),
+            Type::Mixed => $data->get($key),
         };
+    }
+
+    private function getValueForProperty(Request $request, Property $property) {
+        $data = match ($property->source) {
+            Source::QueryOrBody => new Fluent($request->input()),
+            Source::Query => new Fluent($request->query->all()),
+            Source::Body => new Fluent($request->isJson() ? $request->json()->all() : $request->request->all()),
+            Source::Header => new Fluent($request->server->getHeaders()),
+            Source::File => throw new RuntimeException("Unsupported source type: {$property->type->name}"), // todo
+        };
+
+        return $this->getValueFromData($data, $property, $property->source == Source::Header);
     }
 
     /**
@@ -40,18 +56,16 @@ readonly class RequestMapper
 
         $class = new ReflectionClass($className);
 
-        if (($constructor = $class->getConstructor()) == null) {
-            throw new RuntimeException('Request class must have a constructor');
-        }
-
-        $constructorParameters = $constructor->getParameters();
-
         $constructorValues = [];
 
-        foreach ($constructorParameters as $constructorParameter) {
-            $property = Property::fromReflectionParameter($constructorParameter);
+        if (($constructor = $class->getConstructor()) != null) {
+            $constructorParameters = $constructor->getParameters();
 
-            $constructorValues[] = $this->getValueForProperty($request, $property);
+            foreach ($constructorParameters as $constructorParameter) {
+                $property = Property::fromReflectionObject($constructorParameter);
+
+                $constructorValues[] = $this->getValueForProperty($request, $property);
+            }
         }
 
         $instance = new ($class->getName())(...$constructorValues);
@@ -61,7 +75,7 @@ readonly class RequestMapper
         foreach ($classProperties as $classProperty) {
             if ($classProperty->isStatic() || $classProperty->isPromoted()) { continue; }
 
-            $property = Property::fromReflectionProperty($classProperty);
+            $property = Property::fromReflectionObject($classProperty);
 
             $classProperty->setValue($instance, $this->getValueForProperty($request, $property));
         }

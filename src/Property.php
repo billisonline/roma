@@ -2,35 +2,63 @@
 
 namespace BYanelli\Roma;
 
+use BYanelli\Roma\Attributes\NameAttribute;
+use BYanelli\Roma\Attributes\SourceAttribute;
 use ReflectionParameter;
+use ReflectionProperty;
 
 readonly class Property
 {
-    public static function fromReflectionParameter(ReflectionParameter $parameter): self
+    /**
+     * @param \ReflectionAttribute[] $attributes
+     * @return Source
+     */
+    private static function getSourceFromAttributes(array $attributes): Source
     {
-        $key = $parameter->getName();
-        $type = Type::fromReflectionType($parameter->getType());
-        $default = $parameter->isOptional() ? $parameter->getDefaultValue() : null;
+        foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
 
-        return new Property(
-            name: $key,
-            type: $type,
-            default: $default,
-            source: Source::QueryOrBody, // todo
-        );
+            if ($instance instanceof SourceAttribute) {
+                return $instance->getSource();
+            }
+        }
+
+        return Source::QueryOrBody;
     }
 
-    public static function fromReflectionProperty(\ReflectionProperty $property): self
+    /**
+     * @param \ReflectionAttribute[] $attributes
+     * @return string|null
+     */
+    private static function getNameFromAttributes(array $attributes): ?string
     {
-        $key = $property->getName();
-        $type = Type::fromReflectionType($property->getType());
-        $default = $property->hasDefaultValue() ? $property->getDefaultValue() : null;
+        foreach ($attributes as $attribute) {
+            $instance = $attribute->newInstance();
+
+            if ($instance instanceof NameAttribute) {
+                return $instance->getName();
+            }
+        }
+
+        return null;
+    }
+
+    public static function fromReflectionObject(ReflectionParameter|ReflectionProperty $obj): self
+    {
+        $attributes = $obj->getAttributes();
+
+        $name = self::getNameFromAttributes($attributes) ?: $obj->getName();
+        $type = Type::fromReflectionType($obj->getType());
+        $default = $obj instanceof ReflectionParameter
+            ? ($obj->isOptional() ? $obj->getDefaultValue() : null)
+            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : null);
+        $source = self::getSourceFromAttributes($attributes);
 
         return new Property(
-            name: $key,
+            name: $name,
             type: $type,
             default: $default,
-            source: Source::QueryOrBody, // todo
+            source: $source,
         );
     }
 
