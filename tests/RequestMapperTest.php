@@ -1,7 +1,9 @@
 <?php
 
-use BYanelli\Roma\Attributes\ContentType;
+use BYanelli\Roma\Attributes\Accessors\Ajax;
+use BYanelli\Roma\Attributes\Accessors\Method;
 use BYanelli\Roma\Attributes\Header;
+use BYanelli\Roma\Attributes\Headers\ContentType;
 use Illuminate\Validation\ValidationException;
 
 readonly class TestRequest
@@ -10,6 +12,10 @@ readonly class TestRequest
         public string $url,
         public string $name,
         public float $price,
+        #[Ajax]
+        public bool $isAjax,
+        #[Method]
+        public string $method,
     ) {}
 
     public int $quantity;
@@ -49,6 +55,8 @@ it('maps requests', function () {
     $this->assertEquals(true, $request->flag);
     $this->assertEquals(false, $request->flagFromHeader);
     $this->assertEquals('application/json', $request->contentType);
+    $this->assertEquals(false, $request->isAjax);
+    $this->assertEquals('GET', $request->method);
 });
 
 it('fails to map invalid requests', function () {
@@ -84,6 +92,7 @@ it('fails to map invalid requests', function () {
                 'The input.flag field must be true or false.'
             ],
             'header.X_FLAG' => [
+                // todo: weird message?
                 'The header. x  f l a g field must be true or false.'
             ],
         ], $e->errors());

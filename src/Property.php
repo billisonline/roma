@@ -2,66 +2,61 @@
 
 namespace BYanelli\Roma;
 
-use BYanelli\Roma\Attributes\NameAttribute;
+use BYanelli\Roma\Attributes\AccessorAttribute;
+use BYanelli\Roma\Attributes\KeyAttribute;
 use BYanelli\Roma\Attributes\SourceAttribute;
+use Closure;
 use Illuminate\Http\Resources\MissingValue;
+use ReflectionAttribute;
 use ReflectionParameter;
 use ReflectionProperty;
 
 readonly class Property
 {
-    /**
-     * @param \ReflectionAttribute[] $attributes
-     * @return Source
-     */
     private static function getSourceFromAttributes(array $attributes): Source
     {
-        foreach ($attributes as $attribute) {
-            $instance = $attribute->newInstance();
-
-            if ($instance instanceof SourceAttribute) {
-                return $instance->getSource();
-            }
-        }
-
-        return Source::Input;
+        return collect($attributes)
+            ->whereInstanceOf(SourceAttribute::class)
+            ->map(fn (SourceAttribute $attr) => $attr->getSource())
+            ->first() ?: Source::Input;
     }
 
-    /**
-     * @param \ReflectionAttribute[] $attributes
-     * @return string|null
-     */
     private static function getKeyFromAttributes(array $attributes): ?string
     {
-        foreach ($attributes as $attribute) {
-            $instance = $attribute->newInstance();
+        return collect($attributes)
+            ->whereInstanceOf(KeyAttribute::class)
+            ->map(fn (KeyAttribute $attr) => $attr->getKey())
+            ->first();
+    }
 
-            if ($instance instanceof NameAttribute) {
-                return $instance->getName();
-            }
-        }
+    private static function getAccessorFromAttributes(array $attributes): ?Closure
+    {
+        return collect($attributes)
+            ->whereInstanceOf(AccessorAttribute::class)
+            ->map(fn (AccessorAttribute $attr) => $attr->getAccessor())
+            ->first();
+    }
 
-        return null;
+    private static function getDefault(ReflectionParameter|ReflectionProperty $obj): mixed
+    {
+        return $obj instanceof ReflectionParameter
+            ? ($obj->isOptional() ? $obj->getDefaultValue() : new MissingValue())
+            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : new MissingValue());
     }
 
     public static function fromReflectionObject(ReflectionParameter|ReflectionProperty $obj): self
     {
-        $attributes = $obj->getAttributes();
-
-        $name = $obj->getName();
-        $key = self::getKeyFromAttributes($attributes) ?: $obj->getName();
-        $type = Type::fromReflectionType($obj->getType());
-        $default = $obj instanceof ReflectionParameter
-            ? ($obj->isOptional() ? $obj->getDefaultValue() : new MissingValue())
-            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : new MissingValue());
-        $source = self::getSourceFromAttributes($attributes);
+        $attributes = collect($obj->getAttributes())
+            ->map(fn(ReflectionAttribute $attr) => $attr->newInstance())
+            ->all();
 
         return new Property(
-            name: $name,
-            key: $key,
-            type: $type,
-            default: $default,
-            source: $source,
+            name: $obj->getName(),
+            key: self::getKeyFromAttributes($attributes) ?: $obj->getName(),
+            type: Type::fromReflectionType($obj->getType()),
+            default: self::getDefault($obj),
+            source: self::getSourceFromAttributes($attributes),
+            accessor: self::getAccessorFromAttributes($attributes) ?: fn() => null,
         );
     }
 
@@ -73,6 +68,7 @@ readonly class Property
         public Type   $type,
         public mixed  $default,
         public Source $source,
+        public Closure $accessor,
     ) {
         $this->isRequired = $default instanceof MissingValue;
     }

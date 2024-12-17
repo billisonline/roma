@@ -65,6 +65,13 @@ readonly class RequestMapper
         ];
     }
 
+    private function getValue(Request $requestObject, array $requestArray, Property $property): mixed
+    {
+        return ($property->source == Source::Object)
+            ? call_user_func($property->accessor, $requestObject)
+            : Arr::get($requestArray, $this->getAccessKey($property));
+    }
+
     /**
      * @template T
      * @param class-string<T> $className
@@ -74,7 +81,8 @@ readonly class RequestMapper
      */
     public function mapRequest(string $className)
     {
-        $request = $this->flattenRequest($this->container->make('request'));
+        $requestObject = $this->container->make('request');
+        $requestArray = $this->flattenRequest($requestObject);
 
         /** @var Factory $validator */
         $validator = $this->container->make('validator');
@@ -86,14 +94,14 @@ readonly class RequestMapper
 
         $validationRules = $this->getValidationRulesFromProperties([...$constructorParameters, ...$classProperties]);
 
-        $request = $this->castRequestData($request, [...$constructorParameters, ...$classProperties]);
+        $requestArray = $this->castRequestData($requestArray, [...$constructorParameters, ...$classProperties]);
 
-        $validator->make($request, $validationRules)->validate();
+        $validator->make($requestArray, $validationRules)->validate();
 
         $constructorValues = [];
 
         foreach ($constructorParameters as $constructorParameter) {
-            $constructorValues[] = Arr::get($request, $this->getAccessKey($constructorParameter));
+            $constructorValues[] = $this->getValue($requestObject, $requestArray, $constructorParameter);
         }
 
         $instance = new ($class->getName())(...$constructorValues);
@@ -101,7 +109,7 @@ readonly class RequestMapper
         foreach ($classProperties as $classProperty) {
             $modifier = new \ReflectionProperty($instance, $classProperty->name);
 
-            $modifier->setValue($instance, Arr::get($request, $this->getAccessKey($classProperty)));
+            $modifier->setValue($instance, $this->getValue($requestObject, $requestArray, $classProperty));
         }
 
         return $instance;
@@ -133,6 +141,8 @@ readonly class RequestMapper
         $rules = [];
 
         foreach ($properties as $property) {
+            if ($property->source == Source::Object) { continue; }
+
             $propertyRules = [];
 
             if ($property->type != Type::Mixed) {
@@ -190,6 +200,7 @@ readonly class RequestMapper
         $result = $request;
 
         foreach ($properties as $property) {
+            if ($property->source == Source::Object) { continue; }
             if ($property->type == Type::Mixed) { continue; }
 
             $key = $this->getAccessKey($property);
