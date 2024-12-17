@@ -4,6 +4,7 @@ namespace BYanelli\Roma;
 
 use BYanelli\Roma\Attributes\NameAttribute;
 use BYanelli\Roma\Attributes\SourceAttribute;
+use Illuminate\Http\Resources\MissingValue;
 use ReflectionParameter;
 use ReflectionProperty;
 
@@ -23,14 +24,14 @@ readonly class Property
             }
         }
 
-        return Source::QueryOrBody;
+        return Source::Input;
     }
 
     /**
      * @param \ReflectionAttribute[] $attributes
      * @return string|null
      */
-    private static function getNameFromAttributes(array $attributes): ?string
+    private static function getKeyFromAttributes(array $attributes): ?string
     {
         foreach ($attributes as $attribute) {
             $instance = $attribute->newInstance();
@@ -47,25 +48,32 @@ readonly class Property
     {
         $attributes = $obj->getAttributes();
 
-        $name = self::getNameFromAttributes($attributes) ?: $obj->getName();
+        $name = $obj->getName();
+        $key = self::getKeyFromAttributes($attributes) ?: $obj->getName();
         $type = Type::fromReflectionType($obj->getType());
         $default = $obj instanceof ReflectionParameter
-            ? ($obj->isOptional() ? $obj->getDefaultValue() : null)
-            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : null);
+            ? ($obj->isOptional() ? $obj->getDefaultValue() : new MissingValue())
+            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : new MissingValue());
         $source = self::getSourceFromAttributes($attributes);
 
         return new Property(
             name: $name,
+            key: $key,
             type: $type,
             default: $default,
             source: $source,
         );
     }
 
+    public bool $isRequired;
+
     public function __construct(
         public string $name,
-        public Type $type,
-        public mixed $default,
+        public string $key,
+        public Type   $type,
+        public mixed  $default,
         public Source $source,
-    ) {}
+    ) {
+        $this->isRequired = $default instanceof MissingValue;
+    }
 }

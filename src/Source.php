@@ -6,7 +6,7 @@ enum Source
 {
     case Query;
     case Body;
-    case QueryOrBody;
+    case Input;
     case Header;
     case File;
 }
