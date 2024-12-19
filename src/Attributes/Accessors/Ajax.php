@@ -3,14 +3,20 @@
 namespace BYanelli\Roma\Attributes\Accessors;
 
 use Attribute;
-use BYanelli\Roma\Attributes\BaseAccessor;
+use BYanelli\Roma\Attributes\Accessor;
 use Illuminate\Http\Request;
 
 #[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
-readonly class Ajax extends BaseAccessor
+readonly class Ajax extends Accessor
 {
-    protected function getFromRequest(Request $request): bool
+    public function __construct(private ?bool $allowed=null) {}
+
+    public function getRules(): array
     {
-        return $request->ajax();
+        return match ($this->allowed) {
+            true => ['accepted'],
+            false => ['declined'],
+            null => [],
+        };
     }
 }

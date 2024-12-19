@@ -4,6 +4,7 @@ namespace BYanelli\Roma;
 
 use BYanelli\Roma\Attributes\AccessorAttribute;
 use BYanelli\Roma\Attributes\KeyAttribute;
+use BYanelli\Roma\Attributes\RulesAttribute;
 use BYanelli\Roma\Attributes\SourceAttribute;
 use Closure;
 use Illuminate\Http\Resources\MissingValue;
@@ -44,6 +45,15 @@ readonly class Property
             : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : new MissingValue());
     }
 
+
+    private static function getRules(array $attributes): array
+    {
+        return collect($attributes)
+            ->whereInstanceOf(RulesAttribute::class)
+            ->flatMap(fn (RulesAttribute $attr) => $attr->getRules())
+            ->all();
+    }
+
     public static function fromReflectionObject(ReflectionParameter|ReflectionProperty $obj): self
     {
         $attributes = collect($obj->getAttributes())
@@ -57,6 +67,7 @@ readonly class Property
             default: self::getDefault($obj),
             source: self::getSourceFromAttributes($attributes),
             accessor: self::getAccessorFromAttributes($attributes) ?: fn() => null,
+            rules: self::getRules($attributes),
         );
     }
 
@@ -69,6 +80,7 @@ readonly class Property
         public mixed  $default,
         public Source $source,
         public Closure $accessor,
+        public array $rules,
     ) {
         $this->isRequired = $default instanceof MissingValue;
     }

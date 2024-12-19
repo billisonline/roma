@@ -6,19 +6,24 @@ use BYanelli\Roma\Attributes\Header;
 use BYanelli\Roma\Attributes\Headers\ContentType;
 use Illuminate\Validation\ValidationException;
 
+trait HasQuantity {
+    public readonly int $quantity;
+}
+
 readonly class TestRequest
 {
+    use HasQuantity;
+
     public function __construct(
         public string $url,
         public string $name,
         public float $price,
-        #[Ajax]
+        #[Ajax(allowed: true)]
         public bool $isAjax,
         #[Method]
         public string $method,
     ) {}
 
-    public int $quantity;
     public \DateTimeInterface $date;
     public bool $flag;
 
@@ -41,6 +46,7 @@ it('maps requests', function () {
         ],
         headers: [
             'X-Flag' => 'false',
+            'X-Requested-With' => 'XMLHttpRequest',
             'Content-Type' => 'application/json',
         ],
     );
@@ -55,7 +61,7 @@ it('maps requests', function () {
     $this->assertEquals(true, $request->flag);
     $this->assertEquals(false, $request->flagFromHeader);
     $this->assertEquals('application/json', $request->contentType);
-    $this->assertEquals(false, $request->isAjax);
+    $this->assertEquals(true, $request->isAjax);
     $this->assertEquals('GET', $request->method);
 });
 
@@ -81,6 +87,9 @@ it('fails to map invalid requests', function () {
         $this->assertEquals([
             'input.price' => [
                 'The input.price field must be a number.'
+            ],
+            'request.ajax' => [
+                'The request.ajax field must be accepted.'
             ],
             'input.quantity' => [
                 'The input.quantity field must be an integer.'

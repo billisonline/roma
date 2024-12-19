@@ -4,10 +4,10 @@ namespace BYanelli\Roma;
 
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Validation\Factory;
+use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\DateFactory;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ReflectionClass;
@@ -15,7 +15,11 @@ use RuntimeException;
 
 readonly class RequestMapper
 {
-    public function __construct(private Container $container) {}
+    public function __construct(
+        private Container        $container,
+        private DateFactory      $dateFactory,
+        private ValidatorFactory $validatorFactory,
+    ) {}
 
     /**
      * @param ReflectionClass $class
@@ -81,11 +85,8 @@ readonly class RequestMapper
      */
     public function mapRequest(string $className)
     {
-        $requestObject = $this->container->make('request');
-        $requestArray = $this->flattenRequest($requestObject);
-
-        /** @var Factory $validator */
-        $validator = $this->container->make('validator');
+        $request = $this->container->make('request');
+        $requestData = $this->flattenRequest($request);
 
         $class = new ReflectionClass($className);
 
@@ -94,14 +95,17 @@ readonly class RequestMapper
 
         $validationRules = $this->getValidationRulesFromProperties([...$constructorParameters, ...$classProperties]);
 
-        $requestArray = $this->castRequestData($requestArray, [...$constructorParameters, ...$classProperties]);
+        $this->castRequestData($requestData, [...$constructorParameters, ...$classProperties]);
+        $this->addRequestObjectValuesToRequestData($request, $requestData, [...$constructorParameters, ...$classProperties]);
 
-        $validator->make($requestArray, $validationRules)->validate();
+        $this->validatorFactory
+            ->make($requestData, $validationRules)
+            ->validate();
 
         $constructorValues = [];
 
         foreach ($constructorParameters as $constructorParameter) {
-            $constructorValues[] = $this->getValue($requestObject, $requestArray, $constructorParameter);
+            $constructorValues[] = Arr::get($requestData, $this->getAccessKey($constructorParameter));
         }
 
         $instance = new ($class->getName())(...$constructorValues);
@@ -109,7 +113,7 @@ readonly class RequestMapper
         foreach ($classProperties as $classProperty) {
             $modifier = new \ReflectionProperty($instance, $classProperty->name);
 
-            $modifier->setValue($instance, $this->getValue($requestObject, $requestArray, $classProperty));
+            $modifier->setValue($instance, Arr::get($requestData, $this->getAccessKey($classProperty)));
         }
 
         return $instance;
@@ -123,6 +127,7 @@ readonly class RequestMapper
             Source::Body => 'body',
             Source::Header => 'header',
             Source::File => 'file',
+            Source::Object => 'request',
         };
 
         $key = ($property->source == Source::Header)
@@ -134,16 +139,14 @@ readonly class RequestMapper
 
     /**
      * @param Property[] $properties
-     * @return void
+     * @return array
      */
     private function getValidationRulesFromProperties(array $properties): array
     {
         $rules = [];
 
         foreach ($properties as $property) {
-            if ($property->source == Source::Object) { continue; }
-
-            $propertyRules = [];
+            $propertyRules = $property->rules;
 
             if ($property->type != Type::Mixed) {
                 $propertyRules[] = match ($property->type) {
@@ -193,19 +196,17 @@ readonly class RequestMapper
     /**
      * @param array $request
      * @param Property[] $properties
-     * @return array
+     * @return void
      */
-    private function castRequestData(array $request, array $properties): array
+    private function castRequestData(array &$request, array $properties): void
     {
-        $result = $request;
-
         foreach ($properties as $property) {
             if ($property->source == Source::Object) { continue; }
             if ($property->type == Type::Mixed) { continue; }
 
             $key = $this->getAccessKey($property);
 
-            if (!Arr::has($result, $key)) { continue; }
+            if (!Arr::has($request, $key)) { continue; }
 
             $rawValue = Arr::get($request, $key);
 
@@ -214,7 +215,7 @@ readonly class RequestMapper
                     Type::Bool => $this->toBoolean($rawValue),
                     Type::Int => $this->toInteger($rawValue),
                     Type::Float => $this->toFloat($rawValue),
-                    Type::Date => Carbon::parse($rawValue), // todo immutable
+                    Type::Date => $this->dateFactory->parse($rawValue),
                     Type::String => $rawValue,
                     default => throw new RuntimeException("Unsupported type: {$property->type->name}"),
                 };
@@ -222,9 +223,25 @@ readonly class RequestMapper
                 $typedValue = $rawValue;
             }
 
-            Arr::set($result, $key, $typedValue);
+            Arr::set($request, $key, $typedValue);
         }
+    }
 
-        return $result;
+    /**
+     * @param Request $request
+     * @param array $requestData
+     * @param Property[] $properties
+     * @return void
+     */
+    private function addRequestObjectValuesToRequestData(Request $request, array &$requestData, array $properties): void
+    {
+        foreach ($properties as $property) {
+            if ($property->source != Source::Object) { continue; }
+
+            $key = $this->getAccessKey($property);
+            $value = call_user_func($property->accessor, $request);
+
+            Arr::set($requestData, $key, $value);
+        }
     }
 }
