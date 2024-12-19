@@ -4,9 +4,11 @@ use BYanelli\Roma\Attributes\Accessors\Ajax;
 use BYanelli\Roma\Attributes\Accessors\Method;
 use BYanelli\Roma\Attributes\Header;
 use BYanelli\Roma\Attributes\Headers\ContentType;
+use BYanelli\Roma\Attributes\Rule;
 use Illuminate\Validation\ValidationException;
 
 trait HasQuantity {
+    #[Rule('gt:9')]
     public readonly int $quantity;
 }
 
@@ -71,7 +73,7 @@ it('fails to map invalid requests', function () {
             'url' => 'https://example.com',
             'name' => 'John Doe',
             'price' => '9.99.9',
-            'quantity' => '10x',
+            'quantity' => '8',
             'date' => 'jijiji',
             'flag' => 'truee',
         ],
@@ -92,7 +94,7 @@ it('fails to map invalid requests', function () {
                 'The request.ajax field must be accepted.'
             ],
             'input.quantity' => [
-                'The input.quantity field must be an integer.'
+                'The input.quantity field must be greater than 9.'
             ],
             'input.date' => [
                 'The input.date field must be a valid date.'

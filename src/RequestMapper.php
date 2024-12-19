@@ -69,11 +69,9 @@ readonly class RequestMapper
         ];
     }
 
-    private function getValue(Request $requestObject, array $requestArray, Property $property): mixed
+    private function getValue(array $requestData, Property $property): mixed
     {
-        return ($property->source == Source::Object)
-            ? call_user_func($property->accessor, $requestObject)
-            : Arr::get($requestArray, $this->getAccessKey($property));
+        return Arr::get($requestData, $this->getAccessKey($property));
     }
 
     /**
@@ -93,10 +91,12 @@ readonly class RequestMapper
         $constructorParameters = $this->getPropertiesFromConstructorParameters($class);
         $classProperties = $this->getPropertiesFromClassProperties($class);
 
-        $validationRules = $this->getValidationRulesFromProperties([...$constructorParameters, ...$classProperties]);
+        $allProperties = [...$constructorParameters, ...$classProperties];
 
-        $this->castRequestData($requestData, [...$constructorParameters, ...$classProperties]);
-        $this->addRequestObjectValuesToRequestData($request, $requestData, [...$constructorParameters, ...$classProperties]);
+        $validationRules = $this->getValidationRulesFromProperties($allProperties);
+
+        $this->castRequestData($requestData, $allProperties);
+        $this->addRequestObjectValuesToRequestData($request, $requestData, $allProperties);
 
         $this->validatorFactory
             ->make($requestData, $validationRules)
@@ -105,7 +105,7 @@ readonly class RequestMapper
         $constructorValues = [];
 
         foreach ($constructorParameters as $constructorParameter) {
-            $constructorValues[] = Arr::get($requestData, $this->getAccessKey($constructorParameter));
+            $constructorValues[] = $this->getValue($requestData, $constructorParameter);
         }
 
         $instance = new ($class->getName())(...$constructorValues);
@@ -113,7 +113,7 @@ readonly class RequestMapper
         foreach ($classProperties as $classProperty) {
             $modifier = new \ReflectionProperty($instance, $classProperty->name);
 
-            $modifier->setValue($instance, Arr::get($requestData, $this->getAccessKey($classProperty)));
+            $modifier->setValue($instance, $this->getValue($requestData, $classProperty));
         }
 
         return $instance;
