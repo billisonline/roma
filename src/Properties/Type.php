@@ -1,6 +1,6 @@
 <?php
 
-namespace BYanelli\Roma;
+namespace BYanelli\Roma\Properties;
 
 use ReflectionNamedType;
 use RuntimeException;

@@ -3,7 +3,7 @@
 namespace BYanelli\Roma\Attributes;
 
 use Attribute;
-use BYanelli\Roma\Source;
+use BYanelli\Roma\Properties\Source;
 
 #[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
 readonly class Header implements SourceAttribute, KeyAttribute

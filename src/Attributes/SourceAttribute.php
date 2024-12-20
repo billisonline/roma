@@ -2,7 +2,7 @@
 
 namespace BYanelli\Roma\Attributes;
 
-use BYanelli\Roma\Source;
+use BYanelli\Roma\Properties\Source;
 
 interface SourceAttribute
 {
