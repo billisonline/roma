@@ -7,6 +7,18 @@ use BYanelli\Roma\Attributes\Headers\ContentType;
 use BYanelli\Roma\Attributes\Rule;
 use Illuminate\Validation\ValidationException;
 
+enum Color {
+    case Red;
+    case Green;
+    case Blue;
+}
+
+enum Intensity: int {
+    case Low = 10;
+    case Medium = 20;
+    case High = 30;
+}
+
 trait HasQuantity {
     #[Rule('gt:9')]
     public readonly int $quantity;
@@ -34,6 +46,10 @@ readonly class TestRequest
 
     #[ContentType]
     public string $contentType;
+
+    public Color $color;
+
+    public Intensity $intensity;
 }
 
 it('maps requests', function () {
@@ -45,6 +61,8 @@ it('maps requests', function () {
             'quantity' => '10',
             'date' => '2024-01-01',
             'flag' => 'true',
+            'color' => 'Red',
+            'intensity' => '20',
         ],
         headers: [
             'X-Flag' => 'false',
@@ -65,6 +83,8 @@ it('maps requests', function () {
     $this->assertEquals('application/json', $request->contentType);
     $this->assertEquals(true, $request->isAjax);
     $this->assertEquals('GET', $request->method);
+    $this->assertEquals(Color::Red, $request->color);
+    $this->assertEquals(Intensity::Medium, $request->intensity);
 });
 
 it('fails to map invalid requests', function () {
@@ -76,6 +96,8 @@ it('fails to map invalid requests', function () {
             'quantity' => '8',
             'date' => 'jijiji',
             'flag' => 'truee',
+            'color' => 'Orange',
+            'intensity' => '40',
         ],
         headers: [
             'X-Flag' => 'falsee',
@@ -105,6 +127,13 @@ it('fails to map invalid requests', function () {
             'header.X_FLAG' => [
                 // todo: weird message?
                 'The header. x  f l a g field must be true or false.'
+            ],
+            'input.color' => [
+                // todo: better error messages for enums
+                'The selected input.color is invalid.'
+            ],
+            'input.intensity' => [
+                'The selected input.intensity is invalid.'
             ],
         ], $e->errors());
 

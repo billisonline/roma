@@ -2,28 +2,32 @@
 
 namespace BYanelli\Roma\Properties;
 
+use BYanelli\Roma\Properties\Types\Boolean;
+use BYanelli\Roma\Properties\Types\Date;
+use BYanelli\Roma\Properties\Types\Enum;
+use BYanelli\Roma\Properties\Types\Float_;
+use BYanelli\Roma\Properties\Types\Integer;
+use BYanelli\Roma\Properties\Types\Mixed_;
+use BYanelli\Roma\Properties\Types\String_;
 use ReflectionNamedType;
 use RuntimeException;
 
-enum Type
+readonly abstract class Type
 {
-    case String;
-    case Int;
-    case Bool;
-    case Float;
-    case Date;
-    case Mixed;
-
-    public static function fromReflectionType(\ReflectionType|null $type): self {
+    public static function fromReflectionType(?\ReflectionType $type): Type
+    {
         return match (true) {
-            $type == null => Type::Mixed,
+            $type == null => new Mixed_,
             $type instanceof ReflectionNamedType => match ($type->getName()) {
-                'string' => Type::String,
-                'int' => Type::Int,
-                'bool' => Type::Bool,
-                'float' => Type::Float,
-                \DateTimeInterface::class => Type::Date,
-                default => throw new RuntimeException("Unsupported named type: {$type->getName()}"),
+                'string' => new String_,
+                'int' => new Integer,
+                'bool' => new Boolean,
+                'float' => new Float_,
+                \DateTimeInterface::class => new Date,
+                default => match (true) {
+                    enum_exists($type->getName()) => new Enum($type->getName()),
+                    default => throw new RuntimeException('Unsupported type'),
+                },
             },
             default => throw new RuntimeException('Unsupported type'),
         };

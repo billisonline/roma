@@ -2,15 +2,23 @@
 
 namespace BYanelli\Roma;
 
+use BackedEnum;
 use BYanelli\Roma\Properties\Property;
 use BYanelli\Roma\Properties\Source;
-use BYanelli\Roma\Properties\Type;
+use BYanelli\Roma\Properties\Types\Boolean;
+use BYanelli\Roma\Properties\Types\Date;
+use BYanelli\Roma\Properties\Types\Enum;
+use BYanelli\Roma\Properties\Types\Float_;
+use BYanelli\Roma\Properties\Types\Integer;
+use BYanelli\Roma\Properties\Types\Mixed_;
+use BYanelli\Roma\Properties\Types\String_;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\DateFactory;
 use Illuminate\Support\Str;
 use RuntimeException;
+use UnitEnum;
 
 class RequestData implements Arrayable
 {
@@ -79,34 +87,50 @@ class RequestData implements Arrayable
 
     private function toFloat(string $val): float
     {
-
         return is_numeric($val)
             ? floatval($val)
             : throw new RuntimeException("Invalid integer: $val");
     }
 
+    private function toEnum(Enum $type, string $val): mixed
+    {
+        /** @var class-string<BackedEnum|UnitEnum> $class */
+        $class = $type->class;
+
+        $reflectionClass = new \ReflectionEnum($class);
+        $backed = $reflectionClass->isBacked();
+        $backingType = $reflectionClass->getBackingType()?->getName();
+
+        return match (true) {
+            $backed && $backingType == 'int' => $class::from(intval($val)),
+            $backed && $backingType == 'string' => $class::from($val),
+            default => collect($class::cases())->firstOrFail(fn(UnitEnum $enum) => $enum->name == $val),
+        };
+    }
+
     private function castData(): void
     {
         foreach ($this->properties as $property) {
-            if ($property->source == Source::Object) { continue; }
-            if ($property->type == Type::Mixed) { continue; }
+            [$source, $type, $key] = [$property->source, $property->type, $this->getAccessKey($property)];
 
-            $key = $this->getAccessKey($property);
+            if ($source == Source::Object) { continue; }
+            if ($type instanceof Mixed_) { continue; }
 
             if (!Arr::has($this->data, $key)) { continue; }
 
             $rawValue = Arr::get($this->data, $key);
 
             try {
-                $typedValue = match ($property->type) {
-                    Type::Bool => $this->toBoolean($rawValue),
-                    Type::Int => $this->toInteger($rawValue),
-                    Type::Float => $this->toFloat($rawValue),
-                    Type::Date => $this->dateFactory->parse($rawValue),
-                    Type::String => $rawValue,
-                    default => throw new RuntimeException("Unsupported type: {$property->type->name}"),
+                $typedValue = match (true) {
+                    $type instanceof Boolean => $this->toBoolean($rawValue),
+                    $type instanceof Integer => $this->toInteger($rawValue),
+                    $type instanceof Float_ => $this->toFloat($rawValue),
+                    $type instanceof Date => $this->dateFactory->parse($rawValue),
+                    $type instanceof String_ => $rawValue,
+                    $type instanceof Enum => $this->toEnum($type, $rawValue),
+                    default => throw new RuntimeException('Unsupported type: '.$type::class),
                 };
-            } catch (\Exception $e) {
+            } catch (\Exception|\ValueError $e) {
                 $typedValue = $rawValue;
             }
 

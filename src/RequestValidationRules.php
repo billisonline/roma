@@ -4,8 +4,14 @@ namespace BYanelli\Roma;
 
 use BYanelli\Roma\Properties\Property;
 use BYanelli\Roma\Properties\Source;
-use BYanelli\Roma\Properties\Type;
+use BYanelli\Roma\Properties\Types\Boolean;
+use BYanelli\Roma\Properties\Types\Date;
+use BYanelli\Roma\Properties\Types\Enum;
+use BYanelli\Roma\Properties\Types\Float_;
+use BYanelli\Roma\Properties\Types\Integer;
+use BYanelli\Roma\Properties\Types\String_;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 readonly class RequestValidationRules
 {
@@ -19,36 +25,38 @@ readonly class RequestValidationRules
         $this->rules = $this->getValidationRulesFromProperties($properties);
     }
 
+    private function getValidationRulesFromProperty(Property $property): array
+    {
+        [$type, $rules] = [$property->type, $property->rules];
+
+        $rules = array_merge($rules, match (true) {
+            $type instanceof Boolean => ['boolean'],
+            $type instanceof Integer => ['integer'],
+            $type instanceof Float_ => ['numeric'],
+            $type instanceof Date => ['date'],
+            $type instanceof String_ => ['string'],
+            $type instanceof Enum => [Rule::enum($type->class)],
+            default => [],
+        });
+
+        if ($property->isRequired) {
+            $rules[] = 'required';
+        }
+
+        return $rules;
+    }
+
     /**
      * @param Property[] $properties
      * @return array
      */
     private function getValidationRulesFromProperties(array $properties): array
     {
-        $rules = [];
-
-        foreach ($properties as $property) {
-            $propertyRules = $property->rules;
-
-            if ($property->type != Type::Mixed) {
-                $propertyRules[] = match ($property->type) {
-                    Type::Bool => 'boolean',
-                    Type::Int => 'integer',
-                    Type::Float => 'numeric',
-                    Type::Date => 'date',
-                    Type::String => 'string',
-                    default => throw new RuntimeException("Unsupported type: {$property->type->name}"),
-                };
-            }
-
-            if ($property->isRequired) {
-                $propertyRules[] = 'required';
-            }
-
-            $rules[$this->getAccessKey($property)] = $propertyRules;
-        }
-
-        return $rules;
+        return collect($properties)
+            ->mapWithKeys(fn(Property $property) => [
+                $this->getAccessKey($property) => $this->getValidationRulesFromProperty($property)
+            ])
+            ->all();
     }
 
 
