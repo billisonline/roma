@@ -35,8 +35,8 @@ class RequestData implements Arrayable
         private readonly DateFactory $dateFactory = new DateFactory,
     ) {
         $this->data = $this->flattenRequest();
-        $this->castData();
         $this->addRequestObjectValuesToData();
+        $this->castData();
     }
 
     private function flattenRequest(): array
@@ -111,9 +111,8 @@ class RequestData implements Arrayable
     private function castData(): void
     {
         foreach ($this->properties as $property) {
-            [$source, $type, $key] = [$property->source, $property->type, $this->getAccessKey($property)];
+            [$type, $key] = [$property->type, $this->getAccessKey($property)];
 
-            if ($source == Source::Object) { continue; }
             if ($type instanceof Mixed_) { continue; }
 
             if (!Arr::has($this->data, $key)) { continue; }

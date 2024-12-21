@@ -1,10 +1,12 @@
-<?php
+<?php /** @noinspection PhpIllegalPsrClassPathInspection */
 
 use BYanelli\Roma\Attributes\Accessors\Ajax;
 use BYanelli\Roma\Attributes\Accessors\Method;
 use BYanelli\Roma\Attributes\Header;
-use BYanelli\Roma\Attributes\Headers\ContentType;
+use BYanelli\Roma\Attributes\Headers;
 use BYanelli\Roma\Attributes\Rule;
+use BYanelli\Roma\Enums\ContentType;
+use BYanelli\Roma\Tests\TestCase;
 use Illuminate\Validation\ValidationException;
 
 enum Color {
@@ -45,8 +47,13 @@ readonly class TestRequest
     #[Header('X-Flag')]
     public bool $flagFromHeader;
 
-    #[ContentType]
+    #[Headers\ContentType]
     public string $contentType;
+
+    // todo: Gracefully handle the failure caused by mapping the same value
+    //  to two different types. Uncomment below for example
+    /*#[ContentType]
+    public ContentTypeEnum $contentTypeEnum;*/
 
     public Color $color;
 
@@ -54,6 +61,7 @@ readonly class TestRequest
 }
 
 it('maps requests', function () {
+    /** @var TestCase $this */
     $this->bindRequest(
         query: [
             'url' => 'https://example.com',
@@ -72,7 +80,7 @@ it('maps requests', function () {
         ],
     );
 
-    $request = $this->getRequestMapper()->mapRequest(TestRequest::class);
+    $request = $this->mapRequest(TestRequest::class);
 
     $this->assertEquals('https://example.com', $request->url);
     $this->assertEquals('John Doe', $request->name);
@@ -90,10 +98,10 @@ it('maps requests', function () {
 });
 
 it('fails to map invalid requests', function () {
+    /** @var TestCase $this */
     $this->bindRequest(
         query: [
             'url' => 'https://example.com',
-            'name' => 'John Doe',
             'price' => '9.99.9',
             'quantity' => '8',
             'date' => 'jijiji',
@@ -108,7 +116,7 @@ it('fails to map invalid requests', function () {
     );
 
     try {
-        $this->getRequestMapper()->mapRequest(TestRequest::class);
+        $this->mapRequest(TestRequest::class);
     } catch (ValidationException $e) {
         $this->assertEquals([
             'input.price' => [
@@ -137,10 +145,31 @@ it('fails to map invalid requests', function () {
             'input.intensity' => [
                 'The selected input.intensity is invalid.'
             ],
+            'input.name' => [
+                'The input.name field is required.'
+            ],
         ], $e->errors());
 
         return;
     }
 
     $this->assertTrue(false, 'Exception was not thrown');
+});
+
+readonly class TestItMapsContentTypeAsAnEnum {
+    #[Headers\ContentType]
+    public ContentType $contentType;
+}
+
+it('maps content type as an enum', function () {
+    /** @var TestCase $this */
+    $this->bindRequest(
+        headers: [
+            'Content-Type' => 'application/json',
+        ],
+    );
+
+    $request = $this->mapRequest(TestItMapsContentTypeAsAnEnum::class);
+
+    $this->assertEquals(ContentType::ApplicationJson, $request->contentType);
 });

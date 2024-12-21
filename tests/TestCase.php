@@ -5,6 +5,7 @@ namespace BYanelli\Roma\Tests;
 use BYanelli\Roma\RequestMapper;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Orchestra\Testbench\TestCase as Orchestra;
 use BYanelli\Roma\RomaServiceProvider;
 
@@ -36,7 +37,7 @@ class TestCase extends Orchestra
         */
     }
 
-    protected function bindRequest(array $query=[], array $headers=[]): void {
+    public function bindRequest(array $query=[], array $headers=[]): void {
         $server = collect($headers)->mapWithKeys(function ($value, $key) {
             $key = (($key != 'Content-Type') ? 'HTTP_' : '')
                 . str_replace('-', '_', strtoupper($key));
@@ -49,8 +50,20 @@ class TestCase extends Orchestra
         $this->app->bind('request', fn() => $request);
     }
 
-    protected function getRequestMapper(): RequestMapper
+    public function getRequestMapper(): RequestMapper
     {
         return $this->app->make(RequestMapper::class);
+    }
+
+    /**
+     * @template T
+     * @param class-string<T> $class
+     * @return T
+     * @throws ValidationException
+     * @throws \ReflectionException
+     */
+    public function mapRequest(string $class): mixed
+    {
+        return $this->getRequestMapper()->mapRequest($class);
     }
 }
