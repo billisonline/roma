@@ -4,7 +4,6 @@ namespace BYanelli\Roma\Attributes\Accessors;
 
 use Attribute;
 use BYanelli\Roma\Attributes\Accessor;
-use Illuminate\Http\Request;
 
 #[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
 readonly class Ajax extends Accessor

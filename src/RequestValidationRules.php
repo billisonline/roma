@@ -4,12 +4,7 @@ namespace BYanelli\Roma;
 
 use BYanelli\Roma\Properties\Property;
 use BYanelli\Roma\Properties\Source;
-use BYanelli\Roma\Properties\Types\Boolean;
-use BYanelli\Roma\Properties\Types\Date;
-use BYanelli\Roma\Properties\Types\Enum;
-use BYanelli\Roma\Properties\Types\Float_;
-use BYanelli\Roma\Properties\Types\Integer;
-use BYanelli\Roma\Properties\Types\String_;
+use BYanelli\Roma\Properties\Types;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -30,12 +25,12 @@ readonly class RequestValidationRules
         [$type, $rules] = [$property->type, $property->rules];
 
         $rules = array_merge($rules, match (true) {
-            $type instanceof Boolean => ['boolean'],
-            $type instanceof Integer => ['integer'],
-            $type instanceof Float_ => ['numeric'],
-            $type instanceof Date => ['date'],
-            $type instanceof String_ => ['string'],
-            $type instanceof Enum => [Rule::enum($type->class)],
+            $type instanceof Types\Boolean => ['boolean'],
+            $type instanceof Types\Integer => ['integer'],
+            $type instanceof Types\Float_ => ['numeric'],
+            $type instanceof Types\Date => ['date'],
+            $type instanceof Types\String_ => ['string'],
+            $type instanceof Types\Enum => [Rule::enum($type->class)],
             default => [],
         });
 

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Illuminate\Validation\ValidationException;
 use ReflectionProperty;
 
-readonly class RequestMapper
+readonly class RequestMapper implements Contracts\RequestMapper
 {
     public function __construct(
         private Contracts\RequestResolver $requestResolver,

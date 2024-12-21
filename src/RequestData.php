@@ -5,13 +5,7 @@ namespace BYanelli\Roma;
 use BackedEnum;
 use BYanelli\Roma\Properties\Property;
 use BYanelli\Roma\Properties\Source;
-use BYanelli\Roma\Properties\Types\Boolean;
-use BYanelli\Roma\Properties\Types\Date;
-use BYanelli\Roma\Properties\Types\Enum;
-use BYanelli\Roma\Properties\Types\Float_;
-use BYanelli\Roma\Properties\Types\Integer;
-use BYanelli\Roma\Properties\Types\Mixed_;
-use BYanelli\Roma\Properties\Types\String_;
+use BYanelli\Roma\Properties\Types;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -92,7 +86,7 @@ class RequestData implements Arrayable
             : throw new RuntimeException("Invalid integer: $val");
     }
 
-    private function toEnum(Enum $type, string $val): mixed
+    private function toEnum(Types\Enum $type, string $val): mixed
     {
         /** @var class-string<BackedEnum|UnitEnum> $class */
         $class = $type->class;
@@ -113,7 +107,7 @@ class RequestData implements Arrayable
         foreach ($this->properties as $property) {
             [$type, $key] = [$property->type, $this->getAccessKey($property)];
 
-            if ($type instanceof Mixed_) { continue; }
+            if ($type instanceof Types\Mixed_) { continue; }
 
             if (!Arr::has($this->data, $key)) { continue; }
 
@@ -121,12 +115,12 @@ class RequestData implements Arrayable
 
             try {
                 $typedValue = match (true) {
-                    $type instanceof Boolean => $this->toBoolean($rawValue),
-                    $type instanceof Integer => $this->toInteger($rawValue),
-                    $type instanceof Float_ => $this->toFloat($rawValue),
-                    $type instanceof Date => $this->dateFactory->parse($rawValue),
-                    $type instanceof String_ => $rawValue,
-                    $type instanceof Enum => $this->toEnum($type, $rawValue),
+                    $type instanceof Types\Boolean => $this->toBoolean($rawValue),
+                    $type instanceof Types\Integer => $this->toInteger($rawValue),
+                    $type instanceof Types\Float_ => $this->toFloat($rawValue),
+                    $type instanceof Types\Date => $this->dateFactory->parse($rawValue),
+                    $type instanceof Types\String_ => $rawValue,
+                    $type instanceof Types\Enum => $this->toEnum($type, $rawValue),
                     default => throw new RuntimeException('Unsupported type: '.$type::class),
                 };
             } catch (\Exception|\ValueError $e) {

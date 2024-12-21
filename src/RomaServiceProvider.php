@@ -2,7 +2,6 @@
 
 namespace BYanelli\Roma;
 
-use BYanelli\Roma\Contracts\RequestResolver as RequestResolverContract;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -12,6 +11,7 @@ class RomaServiceProvider extends PackageServiceProvider
     {
         $package->name('roma');
 
-        $this->app->bind(RequestResolverContract::class, fn() => $this->app->make(RequestResolver::class));
+        $this->app->bind(Contracts\RequestResolver::class, fn() => $this->app->make(RequestResolver::class));
+        $this->app->bind(Contracts\RequestMapper::class, fn() => $this->app->make(RequestMapper::class));
     }
 }

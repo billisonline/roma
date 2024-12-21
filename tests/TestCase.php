@@ -2,7 +2,7 @@
 
 namespace BYanelli\Roma\Tests;
 
-use BYanelli\Roma\RequestMapper;
+use BYanelli\Roma\Contracts\RequestMapper;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
