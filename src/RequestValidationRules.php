@@ -3,10 +3,8 @@
 namespace BYanelli\Roma;
 
 use BYanelli\Roma\Properties\Property;
-use BYanelli\Roma\Properties\Source;
 use BYanelli\Roma\Properties\Type;
 use BYanelli\Roma\Properties\Types;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 readonly class RequestValidationRules
@@ -42,7 +40,7 @@ readonly class RequestValidationRules
         [$type, $rules, $key] = [
             $property->type,
             $property->rules,
-            $this->getAccessKey($property),
+            $property->getFullKey(),
         ];
 
         $rules = array_merge($rules, $this->getTypeValidationRules($type));
@@ -69,26 +67,6 @@ readonly class RequestValidationRules
         return collect($properties)->reduce(function (array $result, Property $property) {
             return array_merge($result, $this->getValidationRulesFromProperty($property));
         }, []);
-    }
-
-
-    private function getAccessKey(Property $property): string
-    {
-        // todo DRY
-        $source = match ($property->source) {
-            Source::Input => 'input',
-            Source::Query => 'query',
-            Source::Body => 'body',
-            Source::Header => 'header',
-            Source::File => 'file',
-            Source::Object => 'request',
-        };
-
-        $key = ($property->source == Source::Header)
-            ? Str::of($property->key)->upper()->replace('-', '_')->toString()
-            : $property->key;
-
-        return $source.'.'.$key;
     }
 
     public function toArray(): array

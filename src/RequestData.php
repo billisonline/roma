@@ -10,7 +10,6 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\DateFactory;
-use Illuminate\Support\Str;
 use RuntimeException;
 use UnitEnum;
 
@@ -36,31 +35,13 @@ class RequestData implements Arrayable
     private function flattenRequest(): array
     {
         return [
-            'input' => $this->request->input(),
-            'query' => $this->request->query->all(),
-            'header' => $this->request->server->getHeaders(),
-            'body' => $this->request->isJson()
+            Source::Input->getKey() => $this->request->input(),
+            Source::Query->getKey() => $this->request->query->all(),
+            Source::Header->getKey() => $this->request->server->getHeaders(),
+            Source::Body->getKey() => $this->request->isJson()
                 ? $this->request->json()->all()
                 : $this->request->request->all(),
         ];
-    }
-
-    private function getAccessKey(Property $property): string
-    {
-        $source = match ($property->source) {
-            Source::Input => 'input',
-            Source::Query => 'query',
-            Source::Body => 'body',
-            Source::Header => 'header',
-            Source::File => 'file',
-            Source::Object => 'request',
-        };
-
-        $key = ($property->source == Source::Header)
-            ? Str::of($property->key)->upper()->replace('-', '_')->toString()
-            : $property->key;
-
-        return $source.'.'.$key;
     }
 
     private function toBoolean(string $val): bool
@@ -105,7 +86,7 @@ class RequestData implements Arrayable
     private function castData(): void
     {
         foreach ($this->properties as $property) {
-            [$type, $key] = [$property->type, $this->getAccessKey($property)];
+            [$type, $key] = [$property->type, $property->getFullKey()];
 
             if ($type instanceof Types\Mixed_) { continue; }
 
@@ -136,16 +117,15 @@ class RequestData implements Arrayable
         foreach ($this->properties as $property) {
             if ($property->source != Source::Object) { continue; }
 
-            $key = $this->getAccessKey($property);
             $value = call_user_func($property->accessor, $this->request);
 
-            Arr::set($this->data, $key, $value);
+            Arr::set($this->data, $property->getFullKey(), $value);
         }
     }
 
     public function getValue(Property $property)
     {
-        return Arr::get($this->data, $this->getAccessKey($property), $property->default);
+        return Arr::get($this->data, $property->getFullKey(), $property->default);
     }
 
     public function toArray(): array
