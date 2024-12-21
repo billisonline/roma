@@ -37,7 +37,11 @@ class TestCase extends Orchestra
         */
     }
 
-    public function bindRequest(array $query=[], array $headers=[]): void {
+    public function bindRequest(
+        array $query=[],
+        array $headers=[],
+        ?array $json=null,
+    ): void {
         $server = collect($headers)->mapWithKeys(function ($value, $key) {
             $key = (($key != 'Content-Type') ? 'HTTP_' : '')
                 . str_replace('-', '_', strtoupper($key));
@@ -45,7 +49,9 @@ class TestCase extends Orchestra
             return [$key => $value];
         })->toArray();
 
-        $request = new Request(query: $query, server: $server);
+        $request = ($json != null)
+            ? new Request(query: $query, server: $server, content: json_encode($json))
+            : new Request(query: $query, server: $server);
 
         $this->app->bind('request', fn() => $request);
     }

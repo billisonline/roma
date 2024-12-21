@@ -16,6 +16,8 @@ use RuntimeException;
 
 class PropertyFinder
 {
+    public function __construct(private TypeResolver $typeResolver = new TypeResolver) {}
+
     private function getSourceFromAttributes(array $attributes): Source
     {
         return collect($attributes)
@@ -56,7 +58,7 @@ class PropertyFinder
             ->all();
     }
 
-    public function getFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Property
+    private function getFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Property
     {
         $attributes = collect($obj->getAttributes())
             ->map(fn(ReflectionAttribute $attr) => $attr->newInstance())
@@ -65,7 +67,7 @@ class PropertyFinder
         return new Property(
             name: $obj->getName(),
             key: $this->getKeyFromAttributes($attributes) ?: $obj->getName(),
-            type: Type::fromReflectionType($obj->getType()),
+            type: $this->typeResolver->getTypeFromReflectionObject($obj),
             role: $this->getRole($obj),
             default: $this->getDefault($obj),
             source: $this->getSourceFromAttributes($attributes),
@@ -79,7 +81,7 @@ class PropertyFinder
      * @param ReflectionClass $class
      * @return Property[]
      */
-    public function getFromConstructorParameters(ReflectionClass $class): array
+    private function getFromConstructorParameters(ReflectionClass $class): array
     {
         $result = [];
 
@@ -99,7 +101,7 @@ class PropertyFinder
      * @param ReflectionClass $class
      * @return Property[]
      */
-    public function getFromClassProperties(ReflectionClass $class): array
+    private function getFromClassProperties(ReflectionClass $class): array
     {
         $result = [];
 

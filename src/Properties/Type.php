@@ -16,6 +16,7 @@ readonly abstract class Type
                 'int' => new Types\Integer,
                 'bool' => new Types\Boolean,
                 'float' => new Types\Float_,
+                'array' => new Types\Array_(),
                 \DateTimeInterface::class => new Types\Date,
                 default => match (true) {
                     enum_exists($type->getName()) => new Types\Enum($type->getName()),

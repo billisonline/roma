@@ -58,6 +58,9 @@ readonly class TestRequest
     public Color $color;
 
     public Intensity $intensity;
+
+    /** @var array<int> */
+    public array $arr;
 }
 
 it('maps requests', function () {
@@ -78,6 +81,9 @@ it('maps requests', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Content-Type' => 'application/json',
         ],
+        json: [
+            'arr' => [1, 2, 3]
+        ]
     );
 
     $request = $this->mapRequest(TestRequest::class);
@@ -95,6 +101,7 @@ it('maps requests', function () {
     $this->assertEquals(Color::Red, $request->color);
     $this->assertEquals(Intensity::Medium, $request->intensity);
     $this->assertEquals('foo', $request->default);
+    $this->assertEquals([1, 2, 3], $request->arr);
 });
 
 it('fails to map invalid requests', function () {
@@ -112,6 +119,9 @@ it('fails to map invalid requests', function () {
         headers: [
             'X-Flag' => 'falsee',
             'Content-Type' => 'application/json',
+        ],
+        json: [
+            'arr' => ['foo', 'bar', 'baz'],
         ],
     );
 
@@ -147,6 +157,15 @@ it('fails to map invalid requests', function () {
             ],
             'input.name' => [
                 'The input.name field is required.'
+            ],
+            'input.arr.0' => [
+                'The input.arr.0 field must be an integer.'
+            ],
+            'input.arr.1' => [
+                'The input.arr.1 field must be an integer.'
+            ],
+            'input.arr.2' => [
+                'The input.arr.2 field must be an integer.'
             ],
         ], $e->errors());
 
