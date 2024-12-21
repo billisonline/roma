@@ -3,9 +3,13 @@
 namespace BYanelli\Roma;
 
 use BackedEnum;
-use BYanelli\Roma\Properties\Property;
-use BYanelli\Roma\Properties\Source;
-use BYanelli\Roma\Properties\Types;
+use BYanelli\Roma\Data\Property;
+use BYanelli\Roma\Data\Sources\Body;
+use BYanelli\Roma\Data\Sources\Header;
+use BYanelli\Roma\Data\Sources\Input;
+use BYanelli\Roma\Data\Sources\Object_;
+use BYanelli\Roma\Data\Sources\Query;
+use BYanelli\Roma\Data\Types;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -35,10 +39,10 @@ class RequestData implements Arrayable
     private function flattenRequest(): array
     {
         return [
-            Source::Input->getKey() => $this->request->input(),
-            Source::Query->getKey() => $this->request->query->all(),
-            Source::Header->getKey() => $this->request->server->getHeaders(),
-            Source::Body->getKey() => $this->request->isJson()
+            (new Input)->getKey() => $this->request->input(),
+            (new Query)->getKey() => $this->request->query->all(),
+            (new Header)->getKey() => $this->request->server->getHeaders(),
+            (new Body)->getKey() => $this->request->isJson()
                 ? $this->request->json()->all()
                 : $this->request->request->all(),
         ];
@@ -115,7 +119,7 @@ class RequestData implements Arrayable
     private function addRequestObjectValuesToData(): void
     {
         foreach ($this->properties as $property) {
-            if ($property->source != Source::Object) { continue; }
+            if (get_class($property->source) != Object_::class) { continue; }
 
             $value = call_user_func($property->accessor, $this->request);
 

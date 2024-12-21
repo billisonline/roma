@@ -13,4 +13,3 @@ parameters:
     ignoreErrors:
         -
             identifier: property.uninitializedReadonly
-            path: tests/RequestMapperTest.php

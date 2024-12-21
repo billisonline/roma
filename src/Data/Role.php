@@ -1,6 +1,6 @@
 <?php
 
-namespace BYanelli\Roma\Properties;
+namespace BYanelli\Roma\Data;
 
 enum Role
 {

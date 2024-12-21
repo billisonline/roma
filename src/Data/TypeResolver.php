@@ -1,29 +1,35 @@
 <?php
 
-namespace BYanelli\Roma\Properties;
+namespace BYanelli\Roma\Data;
 
 use BYanelli\Roma\Attributes\AccessorAttribute;
 use BYanelli\Roma\Attributes\KeyAttribute;
 use BYanelli\Roma\Attributes\RulesAttribute;
 use BYanelli\Roma\Attributes\SourceAttribute;
+use BYanelli\Roma\Data\Sources\Input;
+use BYanelli\Roma\Data\Types\Class_;
+use BYanelli\Roma\Data\Types\Mixed_;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\Resources\MissingValue;
 use ReflectionAttribute;
 use ReflectionClass;
+use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 
-class PropertyFinder
+class TypeResolver
 {
-    public function __construct(private TypeResolver $typeResolver = new TypeResolver) {}
+    public function __construct(private PhpDocTypeParser $phpDocTypeParser = new PhpDocTypeParser) {}
 
     private function getSourceFromAttributes(array $attributes): Source
     {
         return collect($attributes)
             ->whereInstanceOf(SourceAttribute::class)
             ->map(fn (SourceAttribute $attr) => $attr->getSource())
-            ->first() ?: Source::Input;
+            ->first() ?: new Input;
     }
 
     private function getKeyFromAttributes(array $attributes): ?string
@@ -67,7 +73,7 @@ class PropertyFinder
         return new Property(
             name: $obj->getName(),
             key: $this->getKeyFromAttributes($attributes) ?: $obj->getName(),
-            type: $this->typeResolver->getTypeFromReflectionObject($obj),
+            type: $this->getTypeFromReflectionObject($obj),
             role: $this->getRole($obj),
             default: $this->getDefault($obj),
             source: $this->getSourceFromAttributes($attributes),
@@ -81,7 +87,7 @@ class PropertyFinder
      * @param ReflectionClass $class
      * @return Property[]
      */
-    private function getFromConstructorParameters(ReflectionClass $class): array
+    private function getPropertiesFromConstructorParameters(ReflectionClass $class): array
     {
         $result = [];
 
@@ -101,7 +107,7 @@ class PropertyFinder
      * @param ReflectionClass $class
      * @return Property[]
      */
-    private function getFromClassProperties(ReflectionClass $class): array
+    private function getPropertiesFromClassProperties(ReflectionClass $class): array
     {
         $result = [];
 
@@ -125,15 +131,50 @@ class PropertyFinder
         };
     }
 
-    public function getAllFromClass(string|ReflectionClass $class): array
+    /**
+     * @param ReflectionClass $class
+     * @return list<Property>
+     */
+    private function getAllPropertiesFromClass(ReflectionClass $class): array
+    {
+        return [
+            ...$this->getPropertiesFromConstructorParameters($class),
+            ...$this->getPropertiesFromClassProperties($class),
+        ];
+    }
+
+    private function getTypeByName(
+        ReflectionParameter|ReflectionProperty $obj,
+        string $name,
+    ): Type {
+        return match ($name) {
+            'string' => new Types\String_,
+            'int' => new Types\Integer,
+            'bool' => new Types\Boolean,
+            'float' => new Types\Float_,
+            'array' => new Types\Array_($this->getTypeByName($obj, $this->phpDocTypeParser->getArrayElementTypeName($obj))),
+            \DateTimeInterface::class, Carbon::class, CarbonImmutable::class => new Types\Date,
+            default => match (true) {
+                enum_exists($name) => new Types\Enum($name),
+                class_exists($name) => $this->resolveClass($name),
+                default => throw new RuntimeException("Unsupported type $name"),
+            },
+        };
+    }
+
+    public function getTypeFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Type
+    {
+        return ($obj->getType() instanceof ReflectionNamedType)
+            ? $this->getTypeByName($obj, $obj->getType()->getName())
+            : new Mixed_;
+    }
+
+    public function resolveClass(string|ReflectionClass $class): Class_
     {
         if (is_string($class)) {
             $class = new ReflectionClass($class);
         }
 
-        return [
-            ...$this->getFromConstructorParameters($class),
-            ...$this->getFromClassProperties($class),
-        ];
+        return new Types\Class_($class->getName(), $this->getAllPropertiesFromClass($class));
     }
 }

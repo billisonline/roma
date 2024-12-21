@@ -1,8 +1,8 @@
 <?php
 
-namespace BYanelli\Roma\Properties\Types;
+namespace BYanelli\Roma\Data\Types;
 
-use BYanelli\Roma\Properties\Type;
+use BYanelli\Roma\Data\Type;
 
 final readonly class Enum extends Type
 {

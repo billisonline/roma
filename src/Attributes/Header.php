@@ -3,7 +3,8 @@
 namespace BYanelli\Roma\Attributes;
 
 use Attribute;
-use BYanelli\Roma\Properties\Source;
+use BYanelli\Roma\Data\Source;
+use BYanelli\Roma\Data\Sources;
 
 #[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
 readonly class Header implements SourceAttribute, KeyAttribute
@@ -17,6 +18,6 @@ readonly class Header implements SourceAttribute, KeyAttribute
 
     public function getSource(): Source
     {
-        return Source::Header;
+        return new Sources\Header;
     }
 }

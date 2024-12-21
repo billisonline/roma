@@ -2,12 +2,13 @@
 
 namespace BYanelli\Roma\Attributes;
 
-use BYanelli\Roma\Properties\Source;
+use BYanelli\Roma\Data\Source;
+use BYanelli\Roma\Data\Sources\Object_;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-abstract readonly class Accessor implements SourceAttribute, KeyAttribute, AccessorAttribute, RulesAttribute
+readonly abstract class Accessor implements SourceAttribute, KeyAttribute, AccessorAttribute, RulesAttribute
 {
     public function getKey(): string
     {
@@ -16,7 +17,7 @@ abstract readonly class Accessor implements SourceAttribute, KeyAttribute, Acces
 
     public function getSource(): Source
     {
-        return Source::Object;
+        return new Object_;
     }
 
     public function getAccessor(): Closure

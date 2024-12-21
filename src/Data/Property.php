@@ -1,7 +1,8 @@
 <?php
 
-namespace BYanelli\Roma\Properties;
+namespace BYanelli\Roma\Data;
 
+use BYanelli\Roma\Data\Sources\Header;
 use Closure;
 use Illuminate\Http\Resources\MissingValue;
 use Illuminate\Support\Str;
@@ -16,7 +17,7 @@ class Property
         public readonly Type    $type,
         public readonly Role    $role,
         public readonly mixed   $default,
-        public readonly Source  $source,
+        public readonly Source $source,
         public readonly Closure $accessor,
         public readonly array   $rules,
     ) {
@@ -25,7 +26,7 @@ class Property
 
     private function getNormalizedKey(): string
     {
-        return ($this->source == Source::Header)
+        return (get_class($this->source) == Header::class)
             ? Str::of($this->key)->upper()->replace('-', '_')->toString()
             : $this->key;
     }

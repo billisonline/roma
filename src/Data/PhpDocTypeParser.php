@@ -1,8 +1,7 @@
 <?php
 
-namespace BYanelli\Roma\Properties;
+namespace BYanelli\Roma\Data;
 
-use BYanelli\Roma\Properties\Types\Mixed_;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
@@ -13,12 +12,11 @@ use PHPStan\PhpDocParser\Parser\PhpDocParser;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use PHPStan\PhpDocParser\Parser\TypeParser;
 use PHPStan\PhpDocParser\ParserConfig;
-use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 
-class TypeResolver
+class PhpDocTypeParser
 {
     private function parsePhpDoc(string $phpDoc): PhpDocNode
     {
@@ -86,33 +84,8 @@ class TypeResolver
         return $matches[1][0] ?? throw new RuntimeException("Error parsing array element type from type declaration: $node");
     }
 
-    private function getArrayElementTypeName(ReflectionParameter|ReflectionProperty $obj): string
+    public function getArrayElementTypeName(ReflectionParameter|ReflectionProperty $obj): string
     {
         return $this->parseArrayElementTypeNameFromPhpDocNode($this->getArrayTypePhpDocNode($obj));
-    }
-
-    private function getTypeByName(
-        ReflectionParameter|ReflectionProperty $obj,
-        string $name,
-    ): Type {
-        return match ($name) {
-            'string' => new Types\String_,
-            'int' => new Types\Integer,
-            'bool' => new Types\Boolean,
-            'float' => new Types\Float_,
-            'array' => new Types\Array_($this->getTypeByName($obj, $this->getArrayElementTypeName($obj))),
-            \DateTimeInterface::class => new Types\Date,
-            default => match (true) {
-                enum_exists($name) => new Types\Enum($name),
-                default => throw new RuntimeException("Unsupported type $name"),
-            },
-        };
-    }
-
-    public function getTypeFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Type
-    {
-        return ($obj->getType() instanceof ReflectionNamedType)
-            ? $this->getTypeByName($obj, $obj->getType()->getName())
-            : new Mixed_;
     }
 }

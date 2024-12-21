@@ -2,9 +2,9 @@
 
 namespace BYanelli\Roma;
 
-use BYanelli\Roma\Properties\Property;
-use BYanelli\Roma\Properties\Type;
-use BYanelli\Roma\Properties\Types;
+use BYanelli\Roma\Data\Property;
+use BYanelli\Roma\Data\Type;
+use BYanelli\Roma\Data\Types;
 use Illuminate\Validation\Rule;
 
 readonly class RequestValidationRules

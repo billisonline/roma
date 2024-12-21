@@ -2,9 +2,10 @@
 
 namespace BYanelli\Roma;
 
-use BYanelli\Roma\Properties\Property;
-use BYanelli\Roma\Properties\PropertyFinder;
-use BYanelli\Roma\Properties\Role;
+use BYanelli\Roma\Data\Property;
+use BYanelli\Roma\Data\PropertyFinder;
+use BYanelli\Roma\Data\Role;
+use BYanelli\Roma\Data\TypeResolver;
 use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Illuminate\Validation\ValidationException;
 use ReflectionProperty;
@@ -14,7 +15,7 @@ readonly class RequestMapper implements Contracts\RequestMapper
     public function __construct(
         private Contracts\RequestResolver $requestResolver,
         private ValidatorFactory          $validatorFactory,
-        private PropertyFinder            $propertyFinder = new PropertyFinder,
+        private TypeResolver              $typeResolver = new TypeResolver,
     ) {}
 
     /**
@@ -51,7 +52,9 @@ readonly class RequestMapper implements Contracts\RequestMapper
      */
     public function mapRequest(string $className)
     {
-        $properties = $this->propertyFinder->getAllFromClass($className);
+        $properties = $this->typeResolver
+            ->resolveClass($className)
+            ->properties;
 
         $data = new RequestData($this->requestResolver->get(), $properties);
         $rules = new RequestValidationRules($properties);
