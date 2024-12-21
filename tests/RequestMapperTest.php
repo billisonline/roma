@@ -36,6 +36,7 @@ readonly class TestRequest
         public bool $isAjax,
         #[Method]
         public string $method,
+        public string $default = 'foo',
     ) {}
 
     public \DateTimeInterface $date;
@@ -85,6 +86,7 @@ it('maps requests', function () {
     $this->assertEquals('GET', $request->method);
     $this->assertEquals(Color::Red, $request->color);
     $this->assertEquals(Intensity::Medium, $request->intensity);
+    $this->assertEquals('foo', $request->default);
 });
 
 it('fails to map invalid requests', function () {

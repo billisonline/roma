@@ -5,7 +5,6 @@ namespace BYanelli\Roma;
 use BYanelli\Roma\Properties\Property;
 use BYanelli\Roma\Properties\PropertyFinder;
 use BYanelli\Roma\Properties\Role;
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Illuminate\Validation\ValidationException;
 use ReflectionProperty;
@@ -48,7 +47,6 @@ readonly class RequestMapper
      * @template T
      * @param class-string<T> $className
      * @return T
-     * @throws BindingResolutionException
      * @throws \ReflectionException|ValidationException
      */
     public function mapRequest(string $className)

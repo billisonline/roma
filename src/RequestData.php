@@ -152,7 +152,7 @@ class RequestData implements Arrayable
 
     public function getValue(Property $property)
     {
-        return Arr::get($this->data, $this->getAccessKey($property));
+        return Arr::get($this->data, $this->getAccessKey($property), $property->default);
     }
 
     public function toArray(): array
