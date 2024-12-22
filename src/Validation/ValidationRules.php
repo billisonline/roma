@@ -1,13 +1,13 @@
 <?php
 
-namespace BYanelli\Roma;
+namespace BYanelli\Roma\Validation;
 
 use BYanelli\Roma\Data\Property;
 use BYanelli\Roma\Data\Type;
 use BYanelli\Roma\Data\Types;
 use Illuminate\Validation\Rule;
 
-readonly class RequestValidationRules
+readonly class ValidationRules
 {
     private array $rules;
 

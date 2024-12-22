@@ -11,7 +11,7 @@ final readonly class Property extends Source
         parent::__construct($parent);
     }
 
-    protected function getOwnKey(): string
+    public function getOwnKey(): string
     {
         return $this->key;
     }

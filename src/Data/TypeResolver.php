@@ -7,6 +7,7 @@ use BYanelli\Roma\Attributes\KeyAttribute;
 use BYanelli\Roma\Attributes\RulesAttribute;
 use BYanelli\Roma\Attributes\SourceAttribute;
 use BYanelli\Roma\Data\Sources\Input;
+use BYanelli\Roma\Data\Sources\Property as PropertySource;
 use BYanelli\Roma\Data\Types\Class_;
 use BYanelli\Roma\Data\Types\Mixed_;
 use Carbon\Carbon;
@@ -20,9 +21,12 @@ use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 
-class TypeResolver
+readonly class TypeResolver
 {
-    public function __construct(private PhpDocTypeParser $phpDocTypeParser = new PhpDocTypeParser) {}
+    public function __construct(
+        private ?Source $parentSource = null,
+        private PhpDocTypeParser $phpDocTypeParser = new PhpDocTypeParser,
+    ) {}
 
     private function getSourceFromAttributes(array $attributes): Source
     {
@@ -64,19 +68,29 @@ class TypeResolver
             ->all();
     }
 
+    private function prependParentSource(Source $source): Source
+    {
+        return ($source instanceof PropertySource && $this->parentSource != null)
+            ? new PropertySource($this->parentSource, $source->getOwnKey())
+            : $source;
+    }
+
     private function getFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Property
     {
         $attributes = collect($obj->getAttributes())
             ->map(fn(ReflectionAttribute $attr) => $attr->newInstance())
             ->all();
 
+        $parent = $this->parentSource ?: $this->getSourceFromAttributes($attributes);
+        $key = $this->getKeyFromAttributes($attributes) ?: $obj->getName();
+
         return new Property(
             name: $obj->getName(),
-            key: $this->getKeyFromAttributes($attributes) ?: $obj->getName(),
-            type: $this->getTypeFromReflectionObject($obj),
+            key: $key,
+            type: $this->getTypeFromReflectionObject($parent, $key, $obj),
             role: $this->getRole($obj),
             default: $this->getDefault($obj),
-            source: $this->getSourceFromAttributes($attributes),
+            parent: $parent,
             accessor: $this->getAccessorFromAttributes($attributes) ?: fn() => null,
             rules: $this->getRules($attributes),
         );
@@ -144,6 +158,8 @@ class TypeResolver
     }
 
     private function getTypeByName(
+        Source $parent,
+        string $key,
         ReflectionParameter|ReflectionProperty $obj,
         string $name,
     ): Type {
@@ -152,20 +168,23 @@ class TypeResolver
             'int' => new Types\Integer,
             'bool' => new Types\Boolean,
             'float' => new Types\Float_,
-            'array' => new Types\Array_($this->getTypeByName($obj, $this->phpDocTypeParser->getArrayElementTypeName($obj))),
+            'array' => new Types\Array_($this->getTypeByName($parent, $key, $obj, $this->phpDocTypeParser->getArrayElementTypeName($obj))),
             \DateTimeInterface::class, Carbon::class, CarbonImmutable::class => new Types\Date,
             default => match (true) {
                 enum_exists($name) => new Types\Enum($name),
-                class_exists($name) => $this->resolveClass($name),
+                class_exists($name) => (new TypeResolver(new PropertySource($parent, $key)))->resolveClass($name),
                 default => throw new RuntimeException("Unsupported type $name"),
             },
         };
     }
 
-    public function getTypeFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Type
-    {
+    public function getTypeFromReflectionObject(
+        Source $parent,
+        string $key,
+        ReflectionParameter|ReflectionProperty $obj,
+    ): Type {
         return ($obj->getType() instanceof ReflectionNamedType)
-            ? $this->getTypeByName($obj, $obj->getType()->getName())
+            ? $this->getTypeByName($parent, $key, $obj, $obj->getType()->getName())
             : new Mixed_;
     }
 

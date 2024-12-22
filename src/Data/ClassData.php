@@ -1,38 +1,41 @@
 <?php
 
-namespace BYanelli\Roma;
+namespace BYanelli\Roma\Data;
 
 use BackedEnum;
-use BYanelli\Roma\Data\Property;
 use BYanelli\Roma\Data\Sources\Body;
 use BYanelli\Roma\Data\Sources\Header;
 use BYanelli\Roma\Data\Sources\Input;
 use BYanelli\Roma\Data\Sources\Object_;
+use BYanelli\Roma\Data\Sources\Property as PropertySource;
 use BYanelli\Roma\Data\Sources\Query;
-use BYanelli\Roma\Data\Types;
-use Illuminate\Contracts\Support\Arrayable;
+use BYanelli\Roma\Data\Types\Class_;
+use BYanelli\Roma\RequestData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\DateFactory;
+use Illuminate\Support\Str;
 use RuntimeException;
 use UnitEnum;
 
-class RequestData implements Arrayable
+class ClassData
 {
     private array $data;
 
-    /**
-     * @param Request $request
-     * @param Property[] $properties
-     * @param DateFactory $dateFactory
-     */
     public function __construct(
-        private readonly Request $request,
-        private readonly array $properties,
+        private readonly Request     $request,
+        private readonly Class_      $class,
+        private readonly ?Source     $source = null,
+        ?array                       $data = null,
         private readonly DateFactory $dateFactory = new DateFactory,
     ) {
-        $this->data = $this->flattenRequest();
-        $this->addRequestObjectValuesToData();
+        if ($data == null) {
+            $this->data = $this->flattenRequest();
+            $this->addRequestObjectValuesToData();
+        } else {
+            $this->data = $data;
+        }
+
         $this->castData();
     }
 
@@ -46,6 +49,22 @@ class RequestData implements Arrayable
                 ? $this->request->json()->all()
                 : $this->request->request->all(),
         ];
+    }
+
+    public function getConstructorValues(): array
+    {
+        return collect($this->class->properties)
+            ->filter(fn(Property $p) => $p->role == Role::Constructor)
+            ->map($this->getValue(...))
+            ->all();
+    }
+
+    public function getClassProperties(): array
+    {
+        return collect($this->class->properties)
+            ->filter(fn(Property $p) => $p->role == Role::Property)
+            ->mapWithKeys(fn(Property $p) => [$p->name => $this->getValue($p)])
+            ->all();
     }
 
     private function toBoolean(string $val): bool
@@ -89,8 +108,8 @@ class RequestData implements Arrayable
 
     private function castData(): void
     {
-        foreach ($this->properties as $property) {
-            [$type, $key] = [$property->type, $property->getFullKey()];
+        foreach ($this->class->properties as $property) {
+            [$type, $key] = [$property->type, $this->getKey($property)];
 
             if ($type instanceof Types\Mixed_) { continue; }
 
@@ -106,6 +125,7 @@ class RequestData implements Arrayable
                     $type instanceof Types\Date => $this->dateFactory->parse($rawValue),
                     $type instanceof Types\String_ => $rawValue,
                     $type instanceof Types\Enum => $this->toEnum($type, $rawValue),
+                    $type instanceof Types\Class_ => $this->toRequestData2($property, $type, $rawValue),
                     default => throw new RuntimeException('Unsupported type: '.$type::class),
                 };
             } catch (\Exception|\ValueError $e) {
@@ -118,22 +138,56 @@ class RequestData implements Arrayable
 
     private function addRequestObjectValuesToData(): void
     {
-        foreach ($this->properties as $property) {
-            if (get_class($property->source) != Object_::class) { continue; }
+        foreach ($this->class->properties as $property) {
+            if (get_class($property->source->parent) != Object_::class) { continue; }
 
             $value = call_user_func($property->accessor, $this->request);
 
-            Arr::set($this->data, $property->getFullKey(), $value);
+            Arr::set(
+                $this->data,
+                $property->getFullKey() /*todo: get own key, always go back to first level?*/,
+                $value
+            );
         }
+    }
+
+    private function getKey(Property $property): string
+    {
+        return ($this->source != null)
+            ? Str::after($property->getFullKey(), $this->source->getKey().'.')
+            : $property->getFullKey();
     }
 
     public function getValue(Property $property)
     {
-        return Arr::get($this->data, $property->getFullKey(), $property->default);
+        return Arr::get($this->data, $this->getKey($property), $property->default);
     }
 
     public function toArray(): array
     {
-        return $this->data;
+        return collect($this->data)
+            ->mapWithKeys(fn($val, $key) => [
+                $key => $val instanceof ClassData ? $val->toArray() : $val
+            ])
+            ->all();
+    }
+
+    private function toRequestData2(
+        Property $property,
+        Class_ $class_,
+        array $data
+    ): ClassData {
+        return new ClassData(
+            $this->request,
+            $class_,
+            $property->source,
+            $data,
+            $this->dateFactory
+        );
+    }
+
+    public function getClassName(): string
+    {
+        return $this->class->class;
     }
 }

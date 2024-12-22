@@ -192,3 +192,45 @@ it('maps content type as an enum', function () {
 
     $this->assertEquals(ContentType::ApplicationJson, $request->contentType);
 });
+
+readonly class TestSubSubObject {
+    public string $floob;
+}
+
+readonly class TestSubObject {
+    public string $bar;
+    public string $baz;
+    public TestSubSubObject $subSubObject;
+}
+
+readonly class TestItMapsSubObjects {
+    public string $foo;
+
+    public TestSubObject $subObject;
+}
+
+it('maps nested objects', function () {
+    /** @var TestCase $this */
+    $this->bindRequest(
+        headers: [
+            'Content-Type' => 'application/json',
+        ],
+        json: [
+            'foo' => 'bar',
+            'subObject' => [
+                'bar' => 'baz',
+                'baz' => 'quux',
+                'subSubObject' => [
+                    'floob' => 'flerb',
+                ],
+            ],
+        ],
+    );
+
+    $request = $this->mapRequest(TestItMapsSubObjects::class);
+
+    $this->assertEquals('bar', $request->foo);
+    $this->assertEquals('baz', $request->subObject->bar);
+    $this->assertEquals('quux', $request->subObject->baz);
+    $this->assertEquals('flerb', $request->subObject->subSubObject->floob);
+});

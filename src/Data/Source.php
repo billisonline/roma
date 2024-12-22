@@ -4,9 +4,9 @@ namespace BYanelli\Roma\Data;
 
 readonly abstract class Source
 {
-    public function __construct(private ?Source $parent = null) {}
+    public function __construct(public ?Source $parent = null) {}
 
-    abstract protected function getOwnKey(): string;
+    abstract public function getOwnKey(): string;
 
     public function getKey(): string
     {

@@ -2,10 +2,9 @@
 
 namespace BYanelli\Roma;
 
-use BYanelli\Roma\Data\Property;
-use BYanelli\Roma\Data\PropertyFinder;
-use BYanelli\Roma\Data\Role;
+use BYanelli\Roma\Data\ClassData;
 use BYanelli\Roma\Data\TypeResolver;
+use BYanelli\Roma\Validation\ValidationRules;
 use Illuminate\Contracts\Validation\Factory as ValidatorFactory;
 use Illuminate\Validation\ValidationException;
 use ReflectionProperty;
@@ -18,30 +17,28 @@ readonly class RequestMapper implements Contracts\RequestMapper
         private TypeResolver              $typeResolver = new TypeResolver,
     ) {}
 
-    /**
-     * @param RequestData $data
-     * @param list<Property> $properties
-     * @return list<mixed>
-     */
-    private function getConstructorValues(RequestData $data, array $properties): array
+    private function mapClassesForValues(array $values): array
     {
-        return collect($properties)
-            ->filter(fn(Property $p) => $p->role == Role::Constructor)
-            ->map($data->getValue(...))
+        return collect($values)
+            ->map(fn($val) => $val instanceof ClassData
+                ? $this->mapClass($val)
+                : $val)
             ->all();
     }
 
-    /**
-     * @param RequestData $data
-     * @param list<Property> $properties
-     * @return array<string, mixed>
-     */
-    public function getClassProperties(RequestData $data, array $properties): array
+    private function mapClass(ClassData $data): mixed
     {
-        return collect($properties)
-            ->filter(fn(Property $p) => $p->role == Role::Property)
-            ->mapWithKeys(fn(Property $p) => [$p->name => $data->getValue($p)])
-            ->all();
+        $className = $data->getClassName();
+        $constructorValues = $this->mapClassesForValues($data->getConstructorValues());
+        $classProperties = $this->mapClassesForValues($data->getClassProperties());
+
+        $instance = new $className(...$constructorValues);
+
+        foreach ($classProperties as $name => $value) {
+            (new ReflectionProperty($className, $name))->setValue($instance, $value);
+        }
+
+        return $instance;
     }
 
     /**
@@ -52,26 +49,18 @@ readonly class RequestMapper implements Contracts\RequestMapper
      */
     public function mapRequest(string $className)
     {
-        $properties = $this->typeResolver
-            ->resolveClass($className)
-            ->properties;
+        $request = $this->requestResolver->get();
+        $class = $this->typeResolver->resolveClass($className);
 
-        $data = new RequestData($this->requestResolver->get(), $properties);
-        $rules = new RequestValidationRules($properties);
+        $data = new ClassData($request, $class);
+        $rules = new ValidationRules($class->properties);
+
+        // todo validate nested objects
 
         $this->validatorFactory
             ->make($data->toArray(), $rules->toArray())
             ->validate();
 
-        $constructorValues = $this->getConstructorValues($data, $properties);
-        $classProperties = $this->getClassProperties($data, $properties);
-
-        $instance = new $className(...$constructorValues);
-
-        foreach ($classProperties as $name => $value) {
-            new ReflectionProperty($className, $name)->setValue($instance, $value);
-        }
-
-        return $instance;
+        return $this->mapClass($data);
     }
 }

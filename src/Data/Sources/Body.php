@@ -11,7 +11,7 @@ final readonly class Body extends Source
         parent::__construct();
     }
 
-    protected function getOwnKey(): string
+    public function getOwnKey(): string
     {
         return 'body';
     }

@@ -3,36 +3,39 @@
 namespace BYanelli\Roma\Data;
 
 use BYanelli\Roma\Data\Sources\Header;
+use BYanelli\Roma\Data\Sources\Property as PropertySource;
 use Closure;
 use Illuminate\Http\Resources\MissingValue;
 use Illuminate\Support\Str;
 
-class Property
+readonly class Property
 {
-    public readonly bool $isRequired;
+    public bool $isRequired;
+    public Source $source;
 
     public function __construct(
-        public readonly string  $name,
-        public readonly string  $key,
-        public readonly Type    $type,
-        public readonly Role    $role,
-        public readonly mixed   $default,
-        public readonly Source $source,
-        public readonly Closure $accessor,
-        public readonly array   $rules,
+        public string  $name,
+        public string  $key,
+        public Type    $type,
+        public Role    $role,
+        public mixed   $default,
+        Source         $parent,
+        public Closure $accessor,
+        public array   $rules,
     ) {
         $this->isRequired = $default instanceof MissingValue;
+        $this->source = new PropertySource($parent, $this->normalizeKey($parent, $key));
     }
 
-    private function getNormalizedKey(): string
+    private function normalizeKey(Source $parent, string $key): string
     {
-        return (get_class($this->source) == Header::class)
-            ? Str::of($this->key)->upper()->replace('-', '_')->toString()
-            : $this->key;
+        return (get_class($parent) == Header::class)
+            ? Str::of($key)->upper()->replace('-', '_')->toString()
+            : $key;
     }
 
     public function getFullKey(): string
     {
-        return "{$this->source->getKey()}.{$this->getNormalizedKey()}";
+        return $this->source->getKey();
     }
 }
