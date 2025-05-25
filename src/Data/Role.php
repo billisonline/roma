@@ -6,4 +6,5 @@ enum Role
 {
     case Constructor;
     case Property;
+    case ValidationOnly;
 }

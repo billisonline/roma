@@ -9,7 +9,7 @@ class Rule implements RulesAttribute
 {
     public function __construct(private mixed $rule) {}
 
-    public function getRules(): array
+    public function getRules(AttributeTarget $target): array
     {
         return [$this->rule];
     }

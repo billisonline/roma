@@ -30,7 +30,7 @@ readonly class Property
     private function normalizeKey(Source $parent, string $key): string
     {
         return (get_class($parent) == Header::class)
-            ? Str::of($key)->upper()->replace('-', '_')->toString()
+            ? Str::of($key)->camel()->snake()->toString()
             : $key;
     }
 

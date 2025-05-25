@@ -3,20 +3,19 @@
 namespace BYanelli\Roma\Validation;
 
 use BYanelli\Roma\Data\Property;
+use BYanelli\Roma\Data\Role;
 use BYanelli\Roma\Data\Type;
 use BYanelli\Roma\Data\Types;
+use BYanelli\Roma\Data\Types\Class_;
 use Illuminate\Validation\Rule;
 
 readonly class ValidationRules
 {
     private array $rules;
 
-    /**
-     * @param Property[] $properties
-     */
-    public function __construct(array $properties)
+    public function __construct(Class_ $class)
     {
-        $this->rules = $this->getValidationRulesFromProperties($properties);
+        $this->rules = $this->getValidationRulesFromProperties($class->properties);
     }
 
     private function getTypeValidationRules(Type $type): array
@@ -43,6 +42,10 @@ readonly class ValidationRules
             $property->getFullKey(),
         ];
 
+        if ($property->role == Role::ValidationOnly) {
+            $key = "__request.$key";
+        }
+
         $rules = array_merge($rules, $this->getTypeValidationRules($type));
 
         if ($property->isRequired) {
@@ -52,7 +55,7 @@ readonly class ValidationRules
         $result[$key] = $rules;
 
         if ($type instanceof Types\Array_) {
-            $result[$key.'.*'] = $this->getTypeValidationRules($type->type);
+            $result[$key.'.*'] = $this->getTypeValidationRules($type->memberType);
         }
 
         return $result;
@@ -64,9 +67,9 @@ readonly class ValidationRules
      */
     private function getValidationRulesFromProperties(array $properties): array
     {
-        return collect($properties)->reduce(function (array $result, Property $property) {
-            return array_merge($result, $this->getValidationRulesFromProperty($property));
-        }, []);
+        return collect($properties)
+            ->flatMap(fn(Property $property) => $this->getValidationRulesFromProperty($property))
+            ->all();
     }
 
     public function toArray(): array

@@ -3,7 +3,7 @@
 namespace BYanelli\Roma\Attributes;
 
 use BYanelli\Roma\Data\Source;
-use BYanelli\Roma\Data\Sources\Object_;
+use BYanelli\Roma\Data\Sources\RequestObject_;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,9 +15,14 @@ readonly abstract class Accessor implements SourceAttribute, KeyAttribute, Acces
         return Str::camel(class_basename($this));
     }
 
+    public function getFullKey(): string
+    {
+        return $this->getKey();
+    }
+
     public function getSource(): Source
     {
-        return new Object_;
+        return new RequestObject_;
     }
 
     public function getAccessor(): Closure
@@ -25,7 +30,7 @@ readonly abstract class Accessor implements SourceAttribute, KeyAttribute, Acces
         return fn(Request $request) => $this->getFromRequest($request);
     }
 
-    public function getRules(): array
+    public function getRules(AttributeTarget $target): array
     {
         return [];
     }

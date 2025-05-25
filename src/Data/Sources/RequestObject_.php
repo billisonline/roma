@@ -4,7 +4,7 @@ namespace BYanelli\Roma\Data\Sources;
 
 use BYanelli\Roma\Data\Source;
 
-final readonly class Object_ extends Source
+final readonly class RequestObject_ extends Source
 {
     public function __construct()
     {

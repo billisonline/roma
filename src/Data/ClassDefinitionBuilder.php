@@ -3,6 +3,7 @@
 namespace BYanelli\Roma\Data;
 
 use BYanelli\Roma\Attributes\AccessorAttribute;
+use BYanelli\Roma\Attributes\AttributeTarget;
 use BYanelli\Roma\Attributes\KeyAttribute;
 use BYanelli\Roma\Attributes\RulesAttribute;
 use BYanelli\Roma\Attributes\SourceAttribute;
@@ -21,7 +22,7 @@ use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
 
-readonly class TypeResolver
+readonly class ClassDefinitionBuilder
 {
     public function __construct(
         private ?Source $parentSource = null,
@@ -60,11 +61,13 @@ readonly class TypeResolver
     }
 
 
-    private function getRules(array $attributes): array
+    private function getRulesForParameterOrProperty(array $attributes): array
     {
         return collect($attributes)
             ->whereInstanceOf(RulesAttribute::class)
-            ->flatMap(fn (RulesAttribute $attr) => $attr->getRules())
+            ->flatMap(function (RulesAttribute $attr) {
+                return $attr->getRules(AttributeTarget::Property);
+            })
             ->all();
     }
 
@@ -75,11 +78,19 @@ readonly class TypeResolver
             : $source;
     }
 
-    private function getFromReflectionObject(ReflectionParameter|ReflectionProperty $obj): Property
-    {
-        $attributes = collect($obj->getAttributes())
+    /**
+     * @param list<ReflectionAttribute> $attributes
+     * @return array
+     */
+    private function getAttributeInstances(array $attributes): array {
+        return collect($attributes)
             ->map(fn(ReflectionAttribute $attr) => $attr->newInstance())
             ->all();
+    }
+
+    private function getFromReflectionParameterOrProperty(ReflectionParameter|ReflectionProperty $obj): Property
+    {
+        $attributes = $this->getAttributeInstances($obj->getAttributes());
 
         $parent = $this->parentSource ?: $this->getSourceFromAttributes($attributes);
         $key = $this->getKeyFromAttributes($attributes) ?: $obj->getName();
@@ -92,7 +103,7 @@ readonly class TypeResolver
             default: $this->getDefault($obj),
             parent: $parent,
             accessor: $this->getAccessorFromAttributes($attributes) ?: fn() => null,
-            rules: $this->getRules($attributes),
+            rules: $this->getRulesForParameterOrProperty($attributes),
         );
     }
 
@@ -109,7 +120,7 @@ readonly class TypeResolver
             $constructorParameters = $constructor->getParameters();
 
             foreach ($constructorParameters as $constructorParameter) {
-                $result[] = $this->getFromReflectionObject($constructorParameter);
+                $result[] = $this->getFromReflectionParameterOrProperty($constructorParameter);
             }
         }
 
@@ -130,7 +141,7 @@ readonly class TypeResolver
         foreach ($classProperties as $classProperty) {
             if ($classProperty->isStatic() || $classProperty->isPromoted()) { continue; }
 
-            $result[] = $this->getFromReflectionObject($classProperty);
+            $result[] = $this->getFromReflectionParameterOrProperty($classProperty);
         }
 
         return $result;
@@ -149,7 +160,7 @@ readonly class TypeResolver
      * @param ReflectionClass $class
      * @return list<Property>
      */
-    private function getAllPropertiesFromClass(ReflectionClass $class): array
+    private function getConstructorParameterAndClassProperties(ReflectionClass $class): array
     {
         return [
             ...$this->getPropertiesFromConstructorParameters($class),
@@ -172,7 +183,7 @@ readonly class TypeResolver
             \DateTimeInterface::class, Carbon::class, CarbonImmutable::class => new Types\Date,
             default => match (true) {
                 enum_exists($name) => new Types\Enum($name),
-                class_exists($name) => (new TypeResolver(new PropertySource($parent, $key)))->resolveClass($name),
+                class_exists($name) => (new ClassDefinitionBuilder(new PropertySource($parent, $key)))->buildClassDefinition($name),
                 default => throw new RuntimeException("Unsupported type $name"),
             },
         };
@@ -188,12 +199,45 @@ readonly class TypeResolver
             : new Mixed_;
     }
 
-    public function resolveClass(string|ReflectionClass $class): Class_
+    public function buildClassDefinition(string|ReflectionClass $class): Class_
     {
         if (is_string($class)) {
             $class = new ReflectionClass($class);
         }
 
-        return new Types\Class_($class->getName(), $this->getAllPropertiesFromClass($class));
+        return new Types\Class_(
+            class: $class->getName(),
+            properties: [
+                ...$this->getConstructorParameterAndClassProperties($class),
+                ...$this->getValidationOnlyProperties($class),
+            ],
+        );
+    }
+
+    private function getValidationOnlyProperties(ReflectionClass $class): array
+    {
+        $attributes = $this->getAttributeInstances($class->getAttributes());
+
+        return collect($attributes)
+            ->whereInstanceOf([
+                KeyAttribute::class,
+                RulesAttribute::class,
+                SourceAttribute::class,
+            ])
+            ->map(function (KeyAttribute&RulesAttribute&SourceAttribute $attr) {
+                return new Property(
+                    name: $attr->getKey(),
+                    key: $attr->getKey(),
+                    type: $attr->getType(),
+                    role: Role::ValidationOnly,
+                    default: new MissingValue(),
+                    parent: $attr->getSource(),
+                    accessor: ($attr instanceof AccessorAttribute)
+                        ? $attr->getAccessor()
+                        : fn() => null,
+                    rules: $attr->getRules(AttributeTarget::Class_),
+                );
+            })
+            ->all();
     }
 }

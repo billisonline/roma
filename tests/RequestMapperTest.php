@@ -3,9 +3,8 @@
 use BYanelli\Roma\Attributes\Accessors\Ajax;
 use BYanelli\Roma\Attributes\Accessors\Method;
 use BYanelli\Roma\Attributes\Header;
-use BYanelli\Roma\Attributes\Headers;
+use BYanelli\Roma\Attributes\Headers\ContentType;
 use BYanelli\Roma\Attributes\Rule;
-use BYanelli\Roma\Enums\ContentType;
 use BYanelli\Roma\Tests\TestCase;
 use Illuminate\Validation\ValidationException;
 
@@ -34,7 +33,7 @@ readonly class TestRequest
         public string $url,
         public string $name,
         public float $price,
-        #[Ajax(allowed: true)]
+        #[Ajax(mustBe: true)]
         public bool $isAjax,
         #[Method]
         public string $method,
@@ -47,7 +46,7 @@ readonly class TestRequest
     #[Header('X-Flag')]
     public bool $flagFromHeader;
 
-    #[Headers\ContentType]
+    #[ContentType]
     public string $contentType;
 
     // todo: Gracefully handle the failure caused by mapping the same value
@@ -144,9 +143,8 @@ it('fails to map invalid requests', function () {
             'input.flag' => [
                 'The input.flag field must be true or false.'
             ],
-            'header.X_FLAG' => [
-                // todo: weird message?
-                'The header. x  f l a g field must be true or false.'
+            'header.x_flag' => [
+                'The header.x flag field must be true or false.'
             ],
             'input.color' => [
                 // todo: better error messages for enums
@@ -175,12 +173,16 @@ it('fails to map invalid requests', function () {
     $this->assertTrue(false, 'Exception was not thrown');
 });
 
-readonly class TestItMapsContentTypeAsAnEnum {
-    #[Headers\ContentType]
-    public ContentType $contentType;
+enum ContentTypeEnum: string {
+    case ApplicationJson = 'application/json';
 }
 
-it('maps content type as an enum', function () {
+readonly class TestItMapsContentTypeAsAnEnum {
+    #[ContentType]
+    public ContentTypeEnum $contentType;
+}
+
+it('maps header values to enums', function () {
     /** @var TestCase $this */
     $this->bindRequest(
         headers: [
@@ -190,7 +192,7 @@ it('maps content type as an enum', function () {
 
     $request = $this->mapRequest(TestItMapsContentTypeAsAnEnum::class);
 
-    $this->assertEquals(ContentType::ApplicationJson, $request->contentType);
+    $this->assertEquals(ContentTypeEnum::ApplicationJson, $request->contentType);
 });
 
 readonly class TestSubSubObject {
@@ -233,4 +235,54 @@ it('maps nested objects', function () {
     $this->assertEquals('baz', $request->subObject->bar);
     $this->assertEquals('quux', $request->subObject->baz);
     $this->assertEquals('flerb', $request->subObject->subSubObject->floob);
+});
+
+#[Ajax]
+readonly class TestItRequiresAjax {}
+
+it('requires accessor values to be true via class attributes', function () {
+    /** @var TestCase $this */
+    $this->bindRequest();
+
+    try {
+        $this->mapRequest(TestItRequiresAjax::class);
+    } catch (ValidationException $e) {
+        $this->assertEquals(
+            // todo: better error message
+            ['__request.request.ajax' => ['The   request.request.ajax field must be accepted.']],
+            $e->errors()
+        );
+
+        return;
+    }
+
+    $this->assertTrue(false, 'Exception was not thrown');
+});
+
+#[ContentType(ContentType::APPLICATION_JSON)]
+class TestItRequiresApplicationJsonContentType {}
+
+it('requires header values to be valid via class attributes', function () {
+    /** @var TestCase $this */
+    $this->bindRequest(
+        headers: [
+            'Content-Type' => 'multipart/form-data',
+        ],
+    );
+
+    $thrown = false;
+
+    try {
+        $this->mapRequest(TestItRequiresApplicationJsonContentType::class);
+    } catch (ValidationException $e) {
+        $thrown = true;
+
+        $this->assertEquals(
+            // todo: better error message
+            ['__request.header.content_type' => ['The selected   request.header.content type is invalid.']],
+            $e->errors()
+        );
+    }
+
+    $this->assertTrue($thrown);
 });
