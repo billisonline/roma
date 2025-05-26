@@ -64,7 +64,7 @@ readonly class TestRequest
 
 it('maps requests', function () {
     /** @var TestCase $this */
-    $this->bindRequest(
+    $this->setRequest(
         query: [
             'url' => 'https://example.com',
             'name' => 'John Doe',
@@ -105,7 +105,7 @@ it('maps requests', function () {
 
 it('fails to map invalid requests', function () {
     /** @var TestCase $this */
-    $this->bindRequest(
+    $this->setRequest(
         query: [
             'url' => 'https://example.com',
             'price' => '9.99.9',
@@ -184,7 +184,7 @@ readonly class TestItMapsContentTypeAsAnEnum {
 
 it('maps header values to enums', function () {
     /** @var TestCase $this */
-    $this->bindRequest(
+    $this->setRequest(
         headers: [
             'Content-Type' => 'application/json',
         ],
@@ -213,7 +213,7 @@ readonly class TestItMapsSubObjects {
 
 it('maps nested objects', function () {
     /** @var TestCase $this */
-    $this->bindRequest(
+    $this->setRequest(
         headers: [
             'Content-Type' => 'application/json',
         ],
@@ -242,7 +242,7 @@ readonly class TestItRequiresAjax {}
 
 it('requires accessor values to be true via class attributes', function () {
     /** @var TestCase $this */
-    $this->bindRequest();
+    $this->setRequest();
 
     try {
         $this->mapRequest(TestItRequiresAjax::class);
@@ -264,7 +264,7 @@ class TestItRequiresApplicationJsonContentType {}
 
 it('requires header values to be valid via class attributes', function () {
     /** @var TestCase $this */
-    $this->bindRequest(
+    $this->setRequest(
         headers: [
             'Content-Type' => 'multipart/form-data',
         ],

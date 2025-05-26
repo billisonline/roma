@@ -30,14 +30,9 @@ class TestCase extends Orchestra
     public function getEnvironmentSetUp($app)
     {
         config()->set('database.default', 'testing');
-
-        /*
-        $migration = include __DIR__.'/../database/migrations/create_skeleton_table.php.stub';
-        $migration->up();
-        */
     }
 
-    public function bindRequest(
+    public function setRequest(
         array $query=[],
         array $headers=[],
         ?array $json=null,
