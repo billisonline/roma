@@ -2,12 +2,12 @@
 
 namespace BYanelli\Roma\Tests;
 
-use BYanelli\Roma\Contracts\RequestMapper;
+use BYanelli\Roma\Request\Contracts\RequestMapper;
+use BYanelli\Roma\Request\RomaServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Orchestra\Testbench\TestCase as Orchestra;
-use BYanelli\Roma\RomaServiceProvider;
 
 class TestCase extends Orchestra
 {
