@@ -1,4 +1,6 @@
-<?php /** @noinspection PhpIllegalPsrClassPathInspection */
+<?php
+
+/** @noinspection PhpIllegalPsrClassPathInspection */
 
 use BYanelli\Roma\Request\Attributes\Accessors\Ajax;
 use BYanelli\Roma\Request\Attributes\Accessors\Method;
@@ -9,19 +11,22 @@ use BYanelli\Roma\Tests\TestCase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
-enum Color {
+enum Color
+{
     case Red;
     case Green;
     case Blue;
 }
 
-enum Intensity: int {
+enum Intensity: int
+{
     case Low = 10;
     case Medium = 20;
     case High = 30;
 }
 
-trait HasQuantity {
+trait HasQuantity
+{
     #[Rule('gt:9')]
     public readonly int $quantity;
 }
@@ -42,6 +47,7 @@ readonly class TestRequest
     ) {}
 
     public \DateTimeInterface $date;
+
     public bool $flag;
 
     #[Header('X-Flag')]
@@ -87,7 +93,7 @@ it('maps requests', function () {
             'myFile' => UploadedFile::fake()->createWithContent('myFile.txt', 'zzz'),
         ],
         json: [
-            'arr' => [1, 2, 3]
+            'arr' => [1, 2, 3],
         ],
     );
 
@@ -140,41 +146,41 @@ it('fails to map invalid requests', function () {
     } catch (ValidationException $e) {
         $this->assertEquals([
             'input.price' => [
-                'The input.price field must be a number.'
+                'The input.price field must be a number.',
             ],
             'request.ajax' => [
-                'The request.ajax field must be accepted.'
+                'The request.ajax field must be accepted.',
             ],
             'input.quantity' => [
-                'The input.quantity field must be greater than 9.'
+                'The input.quantity field must be greater than 9.',
             ],
             'input.date' => [
-                'The input.date field must be a valid date.'
+                'The input.date field must be a valid date.',
             ],
             'input.flag' => [
-                'The input.flag field must be true or false.'
+                'The input.flag field must be true or false.',
             ],
             'header.x_flag' => [
-                'The header.x flag field must be true or false.'
+                'The header.x flag field must be true or false.',
             ],
             'input.color' => [
                 // todo: better error messages for enums
-                'The selected input.color is invalid.'
+                'The selected input.color is invalid.',
             ],
             'input.intensity' => [
-                'The selected input.intensity is invalid.'
+                'The selected input.intensity is invalid.',
             ],
             'input.name' => [
-                'The input.name field is required.'
+                'The input.name field is required.',
             ],
             'input.arr.0' => [
-                'The input.arr.0 field must be an integer.'
+                'The input.arr.0 field must be an integer.',
             ],
             'input.arr.1' => [
-                'The input.arr.1 field must be an integer.'
+                'The input.arr.1 field must be an integer.',
             ],
             'input.arr.2' => [
-                'The input.arr.2 field must be an integer.'
+                'The input.arr.2 field must be an integer.',
             ],
         ], $e->errors());
 
@@ -184,11 +190,13 @@ it('fails to map invalid requests', function () {
     $this->assertTrue(false, 'Exception was not thrown');
 });
 
-enum ContentTypeEnum: string {
+enum ContentTypeEnum: string
+{
     case ApplicationJson = 'application/json';
 }
 
-readonly class TestItMapsContentTypeAsAnEnum {
+readonly class TestItMapsContentTypeAsAnEnum
+{
     #[ContentType]
     public ContentTypeEnum $contentType;
 }
@@ -206,17 +214,22 @@ it('maps header values to enums', function () {
     $this->assertEquals(ContentTypeEnum::ApplicationJson, $request->contentType);
 });
 
-readonly class TestSubSubObject {
+readonly class TestSubSubObject
+{
     public string $floob;
 }
 
-readonly class TestSubObject {
+readonly class TestSubObject
+{
     public string $bar;
+
     public string $baz;
+
     public TestSubSubObject $subSubObject;
 }
 
-readonly class TestItMapsSubObjects {
+readonly class TestItMapsSubObjects
+{
     public string $foo;
 
     public TestSubObject $subObject;

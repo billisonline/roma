@@ -7,7 +7,7 @@ use BYanelli\Roma\Request\Attributes\AttributeTarget;
 use BYanelli\Roma\Request\Attributes\Header;
 use Illuminate\Validation\Rule;
 
-#[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY|Attribute::TARGET_CLASS)]
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY | Attribute::TARGET_CLASS)]
 readonly class ContentType extends Header
 {
     const string APPLICATION_JSON = 'application/json';
@@ -27,7 +27,7 @@ readonly class ContentType extends Header
 
     public function getRules(AttributeTarget $target): array
     {
-        return !empty($this->mustBe)
+        return ! empty($this->mustBe)
             ? [Rule::in($this->mustBe)]
             : [];
     }

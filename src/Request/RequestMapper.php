@@ -12,14 +12,14 @@ readonly class RequestMapper implements Contracts\RequestMapper
 {
     public function __construct(
         private Contracts\RequestResolver $requestResolver,
-        private ValidatorFactory                                $validatorFactory,
-        private ClassDefinitionBuilder                          $classDefinitionBuilder = new ClassDefinitionBuilder,
+        private ValidatorFactory $validatorFactory,
+        private ClassDefinitionBuilder $classDefinitionBuilder = new ClassDefinitionBuilder,
     ) {}
 
     private function mapValuesToNestedClasses(array $values): array
     {
         return collect($values)
-            ->map(fn($v) => $v instanceof ClassRequestMapping ? $this->mapClass($v) : $v)
+            ->map(fn ($v) => $v instanceof ClassRequestMapping ? $this->mapClass($v) : $v)
             ->all();
     }
 
@@ -43,8 +43,10 @@ readonly class RequestMapper implements Contracts\RequestMapper
 
     /**
      * @template T
-     * @param class-string<T> $className
+     *
+     * @param  class-string<T>  $className
      * @return T
+     *
      * @throws \ReflectionException|ValidationException
      */
     public function mapRequest(string $className)

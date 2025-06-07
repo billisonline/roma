@@ -33,14 +33,14 @@ class TestCase extends Orchestra
     }
 
     public function setRequest(
-        array $query=[],
-        array $headers=[],
-        array $files=[],
-        ?array $json=null,
+        array $query = [],
+        array $headers = [],
+        array $files = [],
+        ?array $json = null,
     ): void {
         $server = collect($headers)->mapWithKeys(function ($value, $key) {
             $key = (($key != 'Content-Type') ? 'HTTP_' : '')
-                . str_replace('-', '_', strtoupper($key));
+                .str_replace('-', '_', strtoupper($key));
 
             return [$key => $value];
         })->toArray();
@@ -49,7 +49,7 @@ class TestCase extends Orchestra
             ? new Request(query: $query, files: $files, server: $server, content: json_encode($json))
             : new Request(query: $query, files: $files, server: $server);
 
-        $this->app->bind('request', fn() => $request);
+        $this->app->bind('request', fn () => $request);
     }
 
     public function getRequestMapper(): RequestMapper
@@ -59,8 +59,10 @@ class TestCase extends Orchestra
 
     /**
      * @template T
-     * @param class-string<T> $class
+     *
+     * @param  class-string<T>  $class
      * @return T
+     *
      * @throws ValidationException
      * @throws \ReflectionException
      */

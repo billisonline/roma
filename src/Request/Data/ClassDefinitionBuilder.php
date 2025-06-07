@@ -59,10 +59,9 @@ readonly class ClassDefinitionBuilder
     private function getDefault(ReflectionParameter|ReflectionProperty $obj): mixed
     {
         return $obj instanceof ReflectionParameter
-            ? ($obj->isOptional() ? $obj->getDefaultValue() : new MissingValue())
-            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : new MissingValue());
+            ? ($obj->isOptional() ? $obj->getDefaultValue() : new MissingValue)
+            : ($obj->hasDefaultValue() ? $obj->getDefaultValue() : new MissingValue);
     }
-
 
     private function getRulesForParameterOrProperty(array $attributes): array
     {
@@ -75,12 +74,12 @@ readonly class ClassDefinitionBuilder
     }
 
     /**
-     * @param list<ReflectionAttribute> $attributes
-     * @return array
+     * @param  list<ReflectionAttribute>  $attributes
      */
-    private function getAttributeInstances(array $attributes): array {
+    private function getAttributeInstances(array $attributes): array
+    {
         return collect($attributes)
-            ->map(fn(ReflectionAttribute $attr) => $attr->newInstance())
+            ->map(fn (ReflectionAttribute $attr) => $attr->newInstance())
             ->all();
     }
 
@@ -101,14 +100,12 @@ readonly class ClassDefinitionBuilder
             role: $this->getRole($obj),
             default: $this->getDefault($obj),
             parent: $parent,
-            accessor: $this->getAccessorFromAttributes($attributes) ?: fn() => null,
+            accessor: $this->getAccessorFromAttributes($attributes) ?: fn () => null,
             rules: $this->getRulesForParameterOrProperty($attributes),
         );
     }
 
-
     /**
-     * @param ReflectionClass $class
      * @return Property[]
      */
     private function getPropertiesFromConstructorParameters(ReflectionClass $class): array
@@ -126,9 +123,7 @@ readonly class ClassDefinitionBuilder
         return $result;
     }
 
-
     /**
-     * @param ReflectionClass $class
      * @return Property[]
      */
     private function getPropertiesFromClassProperties(ReflectionClass $class): array
@@ -138,7 +133,9 @@ readonly class ClassDefinitionBuilder
         $classProperties = $class->getProperties(\ReflectionProperty::IS_PUBLIC);
 
         foreach ($classProperties as $classProperty) {
-            if ($classProperty->isStatic() || $classProperty->isPromoted()) { continue; }
+            if ($classProperty->isStatic() || $classProperty->isPromoted()) {
+                continue;
+            }
 
             $result[] = $this->getFromReflectionParameterOrProperty($classProperty);
         }
@@ -156,7 +153,6 @@ readonly class ClassDefinitionBuilder
     }
 
     /**
-     * @param ReflectionClass $class
      * @return list<Property>
      */
     private function getConstructorParameterAndClassProperties(ReflectionClass $class): array
@@ -230,11 +226,11 @@ readonly class ClassDefinitionBuilder
                     key: $attr->getKey(),
                     type: $attr->getType(),
                     role: Role::ValidationOnly,
-                    default: new MissingValue(),
+                    default: new MissingValue,
                     parent: $attr->getSource(),
                     accessor: ($attr instanceof AccessorAttribute)
                         ? $attr->getAccessor()
-                        : fn() => null,
+                        : fn () => null,
                     rules: $attr->getRules(AttributeTarget::Class_),
                 );
             })

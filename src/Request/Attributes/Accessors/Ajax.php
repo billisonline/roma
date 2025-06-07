@@ -12,10 +12,10 @@ use Illuminate\Http\Request;
 /**
  * @see Request::ajax()
  */
-#[Attribute(Attribute::TARGET_CLASS|Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
 readonly class Ajax extends Accessor
 {
-    public function __construct(private ?bool $mustBe=null) {}
+    public function __construct(private ?bool $mustBe = null) {}
 
     public function getRules(AttributeTarget $target): array
     {
@@ -32,6 +32,6 @@ readonly class Ajax extends Accessor
 
     public function getType(): Type
     {
-        return new Boolean();
+        return new Boolean;
     }
 }

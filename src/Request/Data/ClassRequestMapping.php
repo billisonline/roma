@@ -7,8 +7,8 @@ use BYanelli\Roma\Request\Data\Sources\Body;
 use BYanelli\Roma\Request\Data\Sources\File;
 use BYanelli\Roma\Request\Data\Sources\Header;
 use BYanelli\Roma\Request\Data\Sources\Input;
-use BYanelli\Roma\Request\Data\Sources\RequestObject_;
 use BYanelli\Roma\Request\Data\Sources\Query;
+use BYanelli\Roma\Request\Data\Sources\RequestObject_;
 use BYanelli\Roma\Request\Data\Types\Class_;
 use BYanelli\Roma\Request\Validation\ValidationRules;
 use Illuminate\Http\Request;
@@ -23,10 +23,10 @@ class ClassRequestMapping
     private array $data;
 
     public function __construct(
-        private readonly Class_      $class,
-        private readonly Request     $request,
-        private readonly ?Source     $source = null,
-        ?array                       $data = null,
+        private readonly Class_ $class,
+        private readonly Request $request,
+        private readonly ?Source $source = null,
+        ?array $data = null,
         private readonly DateFactory $dateFactory = new DateFactory,
     ) {
         if ($data == null) {
@@ -46,7 +46,7 @@ class ClassRequestMapping
             (new Input)->getKey() => $this->request->input(),
             (new Query)->getKey() => $this->request->query->all(),
             (new Header)->getKey() => collect($this->request->server->getHeaders())
-                ->mapWithKeys(fn($val, $key) => [Str::lower($key) => $val])
+                ->mapWithKeys(fn ($val, $key) => [Str::lower($key) => $val])
                 ->all(),
             (new Body)->getKey() => $this->request->isJson()
                 ? $this->request->json()->all()
@@ -61,7 +61,7 @@ class ClassRequestMapping
     private function getConstructorProperties(): array
     {
         return collect($this->class->properties)
-            ->filter(fn(Property $p) => $p->role == Role::Constructor)
+            ->filter(fn (Property $p) => $p->role == Role::Constructor)
             ->all();
     }
 
@@ -71,7 +71,7 @@ class ClassRequestMapping
     private function getClassProperties(): array
     {
         return collect($this->class->properties)
-            ->filter(fn(Property $p) => $p->role == Role::Property)
+            ->filter(fn (Property $p) => $p->role == Role::Property)
             ->all();
     }
 
@@ -81,7 +81,7 @@ class ClassRequestMapping
     private function getValidationOnlyProperties(): array
     {
         return collect($this->class->properties)
-            ->filter(fn(Property $p) => $p->role == Role::ValidationOnly)
+            ->filter(fn (Property $p) => $p->role == Role::ValidationOnly)
             ->all();
     }
 
@@ -98,7 +98,7 @@ class ClassRequestMapping
      */
     public function getClassPropertiesMap(): array
     {
-        return Arr::mapWithKeys($this->getClassProperties(), fn(Property $p) => [$p->name => $this->getValue($p)]);
+        return Arr::mapWithKeys($this->getClassProperties(), fn (Property $p) => [$p->name => $this->getValue($p)]);
     }
 
     private function toBoolean(string $val): bool
@@ -112,7 +112,7 @@ class ClassRequestMapping
 
     private function toInteger(string $val): int
     {
-        return (is_numeric($val) && !str_contains($val, '.'))
+        return (is_numeric($val) && ! str_contains($val, '.'))
             ? intval($val)
             : throw new RuntimeException("Invalid integer: $val");
     }
@@ -136,7 +136,7 @@ class ClassRequestMapping
         return match (true) {
             $backed && $backingType == 'int' => $class::from(intval($val)),
             $backed && $backingType == 'string' => $class::from($val),
-            default => collect($class::cases())->firstOrFail(fn(UnitEnum $enum) => $enum->name == $val),
+            default => collect($class::cases())->firstOrFail(fn (UnitEnum $enum) => $enum->name == $val),
         };
     }
 
@@ -145,11 +145,17 @@ class ClassRequestMapping
         foreach ($this->class->properties as $property) {
             [$role, $type, $key] = [$property->role, $property->type, $this->getKey($property)];
 
-            if ($role == Role::ValidationOnly) { continue; }
+            if ($role == Role::ValidationOnly) {
+                continue;
+            }
 
-            if ($type instanceof Types\Mixed_) { continue; }
+            if ($type instanceof Types\Mixed_) {
+                continue;
+            }
 
-            if (!Arr::has($this->data, $key)) { continue; }
+            if (! Arr::has($this->data, $key)) {
+                continue;
+            }
 
             $rawValue = Arr::get($this->data, $key);
 
@@ -175,13 +181,15 @@ class ClassRequestMapping
     private function addRequestObjectValuesToData(): void
     {
         foreach ($this->class->properties as $property) {
-            if (get_class($property->source->parent) != RequestObject_::class) { continue; }
+            if (get_class($property->source->parent) != RequestObject_::class) {
+                continue;
+            }
 
             $value = call_user_func($property->accessor, $this->request);
 
             Arr::set(
                 $this->data,
-                $property->getFullKey() /*todo: get own key, always go back to first level?*/,
+                $property->getFullKey() /* todo: get own key, always go back to first level? */,
                 $value
             );
         }
@@ -214,8 +222,8 @@ class ClassRequestMapping
     public function toArray(): array
     {
         return collect($this->data)
-            ->mapWithKeys(fn($val, $key) => [
-                $key => $val instanceof ClassRequestMapping ? $val->toArray() : $val
+            ->mapWithKeys(fn ($val, $key) => [
+                $key => $val instanceof ClassRequestMapping ? $val->toArray() : $val,
             ])
             ->all();
     }

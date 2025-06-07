@@ -8,7 +8,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-readonly abstract class Accessor implements SourceAttribute, KeyAttribute, AccessorAttribute, RulesAttribute
+abstract readonly class Accessor implements AccessorAttribute, KeyAttribute, RulesAttribute, SourceAttribute
 {
     public function getKey(): string
     {
@@ -27,7 +27,7 @@ readonly abstract class Accessor implements SourceAttribute, KeyAttribute, Acces
 
     public function getAccessor(): Closure
     {
-        return fn(Request $request) => $this->getFromRequest($request);
+        return fn (Request $request) => $this->getFromRequest($request);
     }
 
     public function getRules(AttributeTarget $target): array
