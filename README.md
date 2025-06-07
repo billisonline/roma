@@ -1,5 +1,7 @@
 # Roma 🍅
 
+[![Tests](https://github.com/byanelli/roma/actions/workflows/run-tests.yml/badge.svg)](https://github.com/byanelli/roma/actions/workflows/run-tests.yml)
+
 ## Introduction
 
 Roma is a Request Object MApper. It has its own implementation of an object mapper designed to map _all_ aspects of Laravel's `Illuminate\Http\Request` request to a fully type-safe and validated POPO (plain old PHP object). That includes headers, the query string, the body, files, and convenience methods of the request object (e.g., `$request->ajax()`). The goal is that when using a custom Roma request, you should never have to interact with the underlying Laravel request directly.
