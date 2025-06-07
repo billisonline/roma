@@ -35,6 +35,7 @@ class TestCase extends Orchestra
     public function setRequest(
         array $query=[],
         array $headers=[],
+        array $files=[],
         ?array $json=null,
     ): void {
         $server = collect($headers)->mapWithKeys(function ($value, $key) {
@@ -45,8 +46,8 @@ class TestCase extends Orchestra
         })->toArray();
 
         $request = ($json != null)
-            ? new Request(query: $query, server: $server, content: json_encode($json))
-            : new Request(query: $query, server: $server);
+            ? new Request(query: $query, files: $files, server: $server, content: json_encode($json))
+            : new Request(query: $query, files: $files, server: $server);
 
         $this->app->bind('request', fn() => $request);
     }

@@ -6,6 +6,7 @@ use BYanelli\Roma\Request\Attributes\Header;
 use BYanelli\Roma\Request\Attributes\Headers\ContentType;
 use BYanelli\Roma\Request\Attributes\Rule;
 use BYanelli\Roma\Tests\TestCase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
 enum Color {
@@ -60,6 +61,8 @@ readonly class TestRequest
 
     /** @var array<int> */
     public array $arr;
+
+    public UploadedFile $myFile;
 }
 
 it('maps requests', function () {
@@ -80,9 +83,12 @@ it('maps requests', function () {
             'X-Requested-With' => 'XMLHttpRequest',
             'Content-Type' => 'application/json',
         ],
+        files: [
+            'myFile' => UploadedFile::fake()->createWithContent('myFile.txt', 'zzz'),
+        ],
         json: [
             'arr' => [1, 2, 3]
-        ]
+        ],
     );
 
     $request = $this->mapRequest(TestRequest::class);
@@ -101,6 +107,8 @@ it('maps requests', function () {
     $this->assertEquals(Intensity::Medium, $request->intensity);
     $this->assertEquals('foo', $request->default);
     $this->assertEquals([1, 2, 3], $request->arr);
+    $this->assertEquals('myFile.txt', $request->myFile->getClientOriginalName());
+    $this->assertEquals('zzz', $request->myFile->getContent());
 });
 
 it('fails to map invalid requests', function () {
@@ -118,6 +126,9 @@ it('fails to map invalid requests', function () {
         headers: [
             'X-Flag' => 'falsee',
             'Content-Type' => 'application/json',
+        ],
+        files: [
+            'myFile' => UploadedFile::fake()->createWithContent('myFile.txt', 'zzz'),
         ],
         json: [
             'arr' => ['foo', 'bar', 'baz'],

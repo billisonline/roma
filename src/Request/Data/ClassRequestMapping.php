@@ -4,6 +4,7 @@ namespace BYanelli\Roma\Request\Data;
 
 use BackedEnum;
 use BYanelli\Roma\Request\Data\Sources\Body;
+use BYanelli\Roma\Request\Data\Sources\File;
 use BYanelli\Roma\Request\Data\Sources\Header;
 use BYanelli\Roma\Request\Data\Sources\Input;
 use BYanelli\Roma\Request\Data\Sources\RequestObject_;
@@ -50,6 +51,7 @@ class ClassRequestMapping
             (new Body)->getKey() => $this->request->isJson()
                 ? $this->request->json()->all()
                 : $this->request->request->all(),
+            (new File)->getKey() => $this->request->files->all(),
         ];
     }
 

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Roma is a Request Object MApper. It has its own implementation of an object mapper designed to map _all_ aspects of Laravel's `Illuminate\Http\Request` request to a fully type-safe and validated POPO (plain old PHP object). That includes headers, the query string, the body, files (coming soon), and convenience methods of the request object (e.g., `$request->ajax()`). The goal is that when using a custom Roma request, you should never have to interact with the underlying Laravel request directly.
+Roma is a Request Object MApper. It has its own implementation of an object mapper designed to map _all_ aspects of Laravel's `Illuminate\Http\Request` request to a fully type-safe and validated POPO (plain old PHP object). That includes headers, the query string, the body, files, and convenience methods of the request object (e.g., `$request->ajax()`). The goal is that when using a custom Roma request, you should never have to interact with the underlying Laravel request directly.
 
 ## Create a request object
 
@@ -110,6 +110,18 @@ class UpdateTaskRequest {
 }
 ``` 
 
+## Map to files
+
+Type-hint any property with `Illuminate\Http\UploadedFile` and it will be mapped.
+
+```php
+use Illuminate\Http\UploadedFile;
+
+class FileRequest {
+    public UploadedFile $myFile;
+}
+```
+
 ## Map to nested objects
 
 Type-hint your properties to other POPOs to deserialize complex nested structures from JSON payloads:
@@ -187,6 +199,5 @@ class ApiOnlyRequest {
 
 ## More to come
 
-* Support uploaded files
 * Wrap remaining metadata from Illuminate Request class
 * Type-safe responses! We want this to be a Request/Response Object MApper
