@@ -110,6 +110,11 @@ class UpdateTaskRequest {
 }
 ``` 
 
+## Map to files
+
+Type-hint any property with `Illuminate\Http\UploadedFile` and it will be mapped.
+
+
 ## Map to nested objects
 
 Type-hint your properties to other POPOs to deserialize complex nested structures from JSON payloads:
@@ -187,6 +192,5 @@ class ApiOnlyRequest {
 
 ## More to come
 
-* Support uploaded files
 * Wrap remaining metadata from Illuminate Request class
 * Type-safe responses! We want this to be a Request/Response Object MApper

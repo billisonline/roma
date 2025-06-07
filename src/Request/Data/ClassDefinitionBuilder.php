@@ -7,6 +7,7 @@ use BYanelli\Roma\Request\Attributes\AttributeTarget;
 use BYanelli\Roma\Request\Attributes\KeyAttribute;
 use BYanelli\Roma\Request\Attributes\RulesAttribute;
 use BYanelli\Roma\Request\Attributes\SourceAttribute;
+use BYanelli\Roma\Request\Data\Sources\File;
 use BYanelli\Roma\Request\Data\Sources\Input;
 use BYanelli\Roma\Request\Data\Sources\Property as PropertySource;
 use BYanelli\Roma\Request\Data\Types\Class_;
@@ -15,12 +16,14 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Http\Resources\MissingValue;
+use Illuminate\Http\UploadedFile;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionProperty;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\File\UploadedFile as SymfonyUploadedFile;
 
 readonly class ClassDefinitionBuilder
 {
@@ -71,13 +74,6 @@ readonly class ClassDefinitionBuilder
             ->all();
     }
 
-    private function prependParentSource(Source $source): Source
-    {
-        return ($source instanceof PropertySource && $this->parentSource != null)
-            ? new PropertySource($this->parentSource, $source->getOwnKey())
-            : $source;
-    }
-
     /**
      * @param list<ReflectionAttribute> $attributes
      * @return array
@@ -92,7 +88,10 @@ readonly class ClassDefinitionBuilder
     {
         $attributes = $this->getAttributeInstances($obj->getAttributes());
 
-        $parent = $this->parentSource ?: $this->getSourceFromAttributes($attributes);
+        $parent = in_array($obj->getType()?->getName(), [UploadedFile::class, SymfonyUploadedFile::class])
+            ? new File
+            : ($this->parentSource ?: $this->getSourceFromAttributes($attributes));
+
         $key = $this->getKeyFromAttributes($attributes) ?: $obj->getName();
 
         return new Property(
@@ -181,6 +180,7 @@ readonly class ClassDefinitionBuilder
             'float' => new Types\Float_,
             'array' => new Types\Array_($this->getTypeByName($parent, $key, $obj, $this->phpDocTypeParser->getArrayElementTypeName($obj))),
             \DateTimeInterface::class, Carbon::class, CarbonImmutable::class => new Types\Date,
+            UploadedFile::class, SymfonyUploadedFile::class => new Types\File,
             default => match (true) {
                 enum_exists($name) => new Types\Enum($name),
                 class_exists($name) => (new ClassDefinitionBuilder(new PropertySource($parent, $key)))->buildClassDefinition($name),
