@@ -8,8 +8,10 @@ interface RequestMapper
 {
     /**
      * @template T
-     * @param class-string<T> $className
+     *
+     * @param  class-string<T>  $className
      * @return T
+     *
      * @throws \ReflectionException|ValidationException
      */
     public function mapRequest(string $className);

@@ -2,7 +2,7 @@
 
 namespace BYanelli\Roma\Request\Data;
 
-readonly abstract class Source
+abstract readonly class Source
 {
     public function __construct(public ?Source $parent = null) {}
 

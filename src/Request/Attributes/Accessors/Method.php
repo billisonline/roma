@@ -7,11 +7,11 @@ use BYanelli\Roma\Request\Attributes\Accessor;
 use BYanelli\Roma\Request\Data\Type;
 use BYanelli\Roma\Request\Data\Types\String_;
 
-#[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
 readonly class Method extends Accessor
 {
     public function getType(): Type
     {
-        return new String_();
+        return new String_;
     }
 }

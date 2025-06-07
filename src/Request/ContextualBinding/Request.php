@@ -25,10 +25,12 @@ class Request implements ContextualAttribute
     {
         foreach (debug_backtrace() as $frame) {
             /** @see BoundMethod::addDependencyForCallParameter() */
-            if (!(
+            if (! (
                 ($frame['class'] == BoundMethod::class)
                 && ($frame['function'] == 'addDependencyForCallParameter')
-            )) { continue; }
+            )) {
+                continue;
+            }
 
             (count($frame['args']) >= 2) ||
                 throw new ContextualBindingException('could not introspect container call stack');

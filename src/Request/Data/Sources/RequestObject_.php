@@ -16,4 +16,3 @@ final readonly class RequestObject_ extends Source
         return 'request';
     }
 }
-

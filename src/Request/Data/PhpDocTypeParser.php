@@ -50,7 +50,7 @@ class PhpDocTypeParser
 
             /** @var ParamTagValueNode $phpDocPropertyNode */
             $phpDocPropertyNode = collect($parsedPhpDoc->getParamTagValues())
-                ->first(fn(ParamTagValueNode $param) => $param->parameterName == '$'.$obj->getName())
+                ->first(fn (ParamTagValueNode $param) => $param->parameterName == '$'.$obj->getName())
                 ?: throw new RuntimeException("Constructor param {$obj->getName()} not found in PHPDoc");
 
             return $phpDocPropertyNode->type;

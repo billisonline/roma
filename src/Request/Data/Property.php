@@ -11,17 +11,18 @@ use Illuminate\Support\Str;
 readonly class Property
 {
     public bool $isRequired;
+
     public Source $source;
 
     public function __construct(
-        public string  $name,
-        public string  $key,
-        public Type    $type,
-        public Role    $role,
-        public mixed   $default,
-        Source         $parent,
+        public string $name,
+        public string $key,
+        public Type $type,
+        public Role $role,
+        public mixed $default,
+        Source $parent,
         public Closure $accessor,
-        public array   $rules,
+        public array $rules,
     ) {
         $this->isRequired = $default instanceof MissingValue;
         $this->source = new PropertySource($parent, $this->normalizeKey($parent, $key));

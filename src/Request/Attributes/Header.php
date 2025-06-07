@@ -9,8 +9,8 @@ use BYanelli\Roma\Request\Data\Type;
 use BYanelli\Roma\Request\Data\Types\String_;
 use Illuminate\Support\Str;
 
-#[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_PROPERTY)]
-readonly class Header implements SourceAttribute, KeyAttribute, RulesAttribute
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
+readonly class Header implements KeyAttribute, RulesAttribute, SourceAttribute
 {
     public function __construct(public string $name) {}
 
@@ -32,7 +32,7 @@ readonly class Header implements SourceAttribute, KeyAttribute, RulesAttribute
 
     public function getType(): Type
     {
-        return new String_();
+        return new String_;
     }
 
     public function getFullKey(): string

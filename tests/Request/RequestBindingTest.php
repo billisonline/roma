@@ -1,9 +1,12 @@
-<?php /** @noinspection PhpIllegalPsrClassPathInspection */
+<?php
 
-use BYanelli\Roma\Tests\TestCase;
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 use BYanelli\Roma\Request\ContextualBinding\Request;
+use BYanelli\Roma\Tests\TestCase;
 
-class TestBoundRequest {
+class TestBoundRequest
+{
     public function __construct(
         public string $a,
         public string $b,

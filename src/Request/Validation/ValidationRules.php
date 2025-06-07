@@ -62,13 +62,12 @@ readonly class ValidationRules
     }
 
     /**
-     * @param Property[] $properties
-     * @return array
+     * @param  Property[]  $properties
      */
     private function getValidationRulesFromProperties(array $properties): array
     {
         return collect($properties)
-            ->flatMap(fn(Property $property) => $this->getValidationRulesFromProperty($property))
+            ->flatMap(fn (Property $property) => $this->getValidationRulesFromProperty($property))
             ->all();
     }
 
