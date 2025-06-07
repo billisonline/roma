@@ -1,6 +1,6 @@
 # Roma 🍅
 
-[![Tests](https://github.com/byanelli/roma/actions/workflows/run-tests.yml/badge.svg)](https://github.com/byanelli/roma/actions/workflows/run-tests.yml)
+[![Tests](https://github.com/billisonline/roma/actions/workflows/run-tests.yml/badge.svg)](https://github.com/billisonline/roma/actions/workflows/run-tests.yml)
 
 ## Introduction
 
